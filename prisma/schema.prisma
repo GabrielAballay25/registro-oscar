@@ -1,9 +1,72 @@
-generator client {
-  provider = "prisma-client-js"
-}
-
 datasource db {
   provider  = "postgresql"
   url       = env("DATABASE_URL")
   directUrl = env("DIRECT_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// 1. Usuario único Administrador
+model User {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  passwordHash String
+  createdAt    DateTime @default(now())
+}
+
+// 2. Catalogo de Productos
+model Product {
+  id          String     @id @default(uuid())
+  name        String
+  description String?
+  price       Decimal    @db.Decimal(10, 2)
+  stock       Int        @default(0)
+  saleItems   SaleItem[]
+  createdAt   DateTime   @default(now())
+}
+
+// 3. Registro de Ventas
+model Sale {
+  id          String     @id @default(uuid())
+  customerName String    // Nombre del cliente final para identificar la venta rápidamente
+  notes       String?    // Modalidad pactada (ej: "Cuotas semanales de $5000")
+  status      String     @default("PENDIENTE") // "PENDIENTE", "PARCIAL", "COMPLETADO"
+  items       SaleItem[]
+  payments    Payment[]
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+}
+
+// Detalle de articulos de la venta
+model SaleItem {
+  id        String  @id @default(uuid())
+  saleId    String
+  sale      Sale    @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  productId String
+  product   Product @relation(fields: [productId], references: [id])
+  quantity  Int
+  unitPrice Decimal @db.Decimal(10, 2)
+}
+
+// 4. Registro de Cobros / Entregas (Requerimientos 1 y 3)
+model Payment {
+  id            String   @id @default(uuid())
+  saleId        String
+  sale          Sale     @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  amountPaid    Decimal  @db.Decimal(10, 2) // Monto exacto que entregó el cliente en esta cuota
+  paymentDate   DateTime @default(now())   // Fecha y hora del cobro
+  paymentMethod String   @default("Efectivo") // "Efectivo", "Transferencia", etc.
+  note          String?  // Ej: "Pago parcial de la cuota 2"
+  createdAt     DateTime @default(now())
+}
+
+// 5. Cierre de Caja Semanal (Requerimiento 4)
+model WeeklyClosure {
+  id          String   @id @default(uuid())
+  startDate   DateTime // Lunes
+  endDate     DateTime // Domingo
+  totalAmount Decimal  @db.Decimal(10, 2) // Suma total cobrada en la semana
+  closedAt    DateTime @default(now())
 }
