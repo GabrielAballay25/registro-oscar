@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/prisma";
+import { requireAuth } from "@/lib/auth";
 import { toMoney } from "@/lib/money";
 import type { ActionResult, ProductOption } from "@/lib/types";
 
@@ -18,6 +19,8 @@ export async function createProduct(input: {
   price: string;
   stock: number;
 }): Promise<ActionResult<ProductOption>> {
+  await requireAuth();
+
   const name = input.name.trim();
   if (!name) {
     return { success: false, error: "El nombre del producto es obligatorio." };

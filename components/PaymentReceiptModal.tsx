@@ -20,14 +20,14 @@ export function PaymentReceiptModal({
           <button
             type="button"
             onClick={() => window.print()}
-            className="rounded-lg bg-white px-4 py-2 text-sm font-medium text-zinc-900 shadow hover:bg-zinc-100"
+            className="rounded-lg bg-white px-4 py-2 text-sm font-medium text-stone-900 shadow hover:bg-orange-50"
           >
             Imprimir / Guardar
           </button>
           <button
             type="button"
             onClick={onClose}
-            className="rounded-lg bg-zinc-800 px-4 py-2 text-sm font-medium text-white shadow hover:bg-zinc-700"
+            className="rounded-lg bg-orange-600 px-4 py-2 text-sm font-medium text-white shadow hover:bg-orange-700"
           >
             Cerrar
           </button>

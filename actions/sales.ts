@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/prisma";
+import { requireAuth } from "@/lib/auth";
 import {
   multiplyDecimalByInt,
   subtractDecimalStrings,
@@ -15,6 +16,32 @@ import type {
   SaleListItem,
 } from "@/lib/types";
 
+function toSaleListItem(sale: {
+  id: string;
+  customerName: string;
+  notes: string | null;
+  status: string;
+  createdAt: Temporal.PlainDateTime;
+  items: Array<{ unitPrice: string; quantity: number }>;
+  payments: Array<{ amountPaid: string }>;
+}): SaleListItem {
+  const total = sumDecimalStrings(
+    sale.items.map((item) => multiplyDecimalByInt(item.unitPrice, item.quantity)),
+  );
+  const paid = sumDecimalStrings(sale.payments.map((p) => p.amountPaid));
+
+  return {
+    id: sale.id,
+    customerName: sale.customerName,
+    notes: sale.notes,
+    status: sale.status,
+    createdAt: plainDateTimeToDate(sale.createdAt).toISOString(),
+    total,
+    paid,
+    balance: subtractDecimalStrings(total, paid),
+  };
+}
+
 export async function getActiveSales(): Promise<SaleListItem[]> {
   const sales = await db.orm.public.Sale
     .where((s) => s.status.neq("COMPLETADO"))
@@ -23,23 +50,18 @@ export async function getActiveSales(): Promise<SaleListItem[]> {
     .include("payments", (payments) => payments.select("amountPaid"))
     .all();
 
-  return sales.map((sale) => {
-    const total = sumDecimalStrings(
-      sale.items.map((item) => multiplyDecimalByInt(item.unitPrice, item.quantity)),
-    );
-    const paid = sumDecimalStrings(sale.payments.map((p) => p.amountPaid));
+  return sales.map(toSaleListItem);
+}
 
-    return {
-      id: sale.id,
-      customerName: sale.customerName,
-      notes: sale.notes,
-      status: sale.status,
-      createdAt: plainDateTimeToDate(sale.createdAt).toISOString(),
-      total,
-      paid,
-      balance: subtractDecimalStrings(total, paid),
-    };
-  });
+export async function getAllSales(): Promise<SaleListItem[]> {
+  const sales = await db.orm.public.Sale
+    .orderBy((s) => s.createdAt.desc())
+    .limit(100)
+    .include("items", (items) => items.select("quantity", "unitPrice"))
+    .include("payments", (payments) => payments.select("amountPaid"))
+    .all();
+
+  return sales.map(toSaleListItem);
 }
 
 export async function getSaleDetail(saleId: string): Promise<SaleDetail | null> {
@@ -102,6 +124,8 @@ export type CreateSaleInput = {
 export async function createSale(
   input: CreateSaleInput,
 ): Promise<ActionResult<{ id: string }>> {
+  await requireAuth();
+
   const customerName = input.customerName.trim();
   if (!customerName) {
     return { success: false, error: "El nombre del cliente es obligatorio." };
@@ -146,6 +170,7 @@ export async function createSale(
     });
 
     revalidatePath("/");
+    revalidatePath("/ventas");
     revalidatePath("/productos");
     revalidatePath("/ventas/nueva");
 

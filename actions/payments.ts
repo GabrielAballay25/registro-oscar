@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/prisma";
+import { requireAuth } from "@/lib/auth";
 import {
   decimalToCents,
   multiplyDecimalByInt,
@@ -33,6 +34,8 @@ export type RegisterPaymentInput = {
 export async function registerPayment(
   input: RegisterPaymentInput,
 ): Promise<ActionResult<PaymentReceiptData>> {
+  await requireAuth();
+
   const amountCents = decimalToCents(input.amountPaid || "0");
   if (!Number.isFinite(amountCents) || amountCents <= 0) {
     return { success: false, error: "El monto cobrado debe ser mayor a cero." };
@@ -108,8 +111,9 @@ export async function registerPayment(
     });
 
     revalidatePath("/");
+    revalidatePath("/ventas");
     revalidatePath(`/ventas/${input.saleId}`);
-    revalidatePath("/cierre");
+    revalidatePath("/cobros");
 
     return { success: true, data: receipt };
   } catch (err) {
@@ -154,6 +158,8 @@ export async function getWeeklyClosureSummary(): Promise<WeeklyClosureSummary> {
 }
 
 export async function closeCurrentWeek(): Promise<ActionResult<ClosureRecord>> {
+  await requireAuth();
+
   const { start, end } = getWeekRange(new Date());
 
   const existing = await db.orm.public.WeeklyClosure
@@ -171,7 +177,7 @@ export async function closeCurrentWeek(): Promise<ActionResult<ClosureRecord>> {
     totalAmount: toMoney(summary.total),
   });
 
-  revalidatePath("/cierre");
+  revalidatePath("/cobros");
 
   return {
     success: true,

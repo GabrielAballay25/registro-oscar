@@ -57,35 +57,38 @@ export function NewSaleForm({ products }: { products: ProductOption[] }) {
   }, 0);
 
   return (
-    <form action={formAction} className="space-y-4">
+    <form
+      action={formAction}
+      className="space-y-4 rounded-xl border border-orange-100 bg-white p-4 shadow-sm"
+    >
       {state && !state.success ? (
         <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{state.error}</p>
       ) : null}
 
       <label className="flex flex-col gap-1 text-sm">
-        <span className="text-zinc-600">Cliente</span>
+        <span className="text-stone-600">Cliente</span>
         <input
           name="customerName"
           required
           placeholder="Nombre del cliente"
-          className="rounded-md border border-zinc-300 px-3 py-2"
+          className="rounded-md border border-stone-300 px-3 py-2"
         />
       </label>
 
       <label className="flex flex-col gap-1 text-sm">
-        <span className="text-zinc-600">
+        <span className="text-stone-600">
           Notas (modalidad de pago, ej: cuotas semanales de $5000)
         </span>
-        <input name="notes" className="rounded-md border border-zinc-300 px-3 py-2" />
+        <input name="notes" className="rounded-md border border-stone-300 px-3 py-2" />
       </label>
 
       <div className="space-y-2">
         <div className="flex items-center justify-between">
-          <span className="text-sm font-medium text-zinc-700">Productos</span>
+          <span className="text-sm font-medium text-stone-700">Productos</span>
           <button
             type="button"
             onClick={addRow}
-            className="text-sm font-medium text-blue-600 hover:underline"
+            className="text-sm font-medium text-orange-600 hover:underline"
           >
             + Agregar producto
           </button>
@@ -97,7 +100,7 @@ export function NewSaleForm({ products }: { products: ProductOption[] }) {
               name="productId"
               value={row.productId}
               onChange={(e) => updateRow(index, { productId: e.target.value })}
-              className="flex-1 rounded-md border border-zinc-300 px-3 py-2 text-sm"
+              className="flex-1 rounded-md border border-stone-300 px-3 py-2 text-sm"
             >
               <option value="">Seleccionar producto</option>
               {products.map((product) => (
@@ -112,7 +115,7 @@ export function NewSaleForm({ products }: { products: ProductOption[] }) {
               min={1}
               value={row.quantity}
               onChange={(e) => updateRow(index, { quantity: Number(e.target.value) })}
-              className="w-20 rounded-md border border-zinc-300 px-3 py-2 text-sm"
+              className="w-20 rounded-md border border-stone-300 px-3 py-2 text-sm"
             />
             <button
               type="button"
@@ -126,9 +129,9 @@ export function NewSaleForm({ products }: { products: ProductOption[] }) {
         ))}
       </div>
 
-      <div className="flex items-center justify-between border-t border-zinc-200 pt-3">
-        <span className="text-sm text-zinc-600">Total estimado</span>
-        <span className="text-lg font-semibold">
+      <div className="flex items-center justify-between border-t border-orange-100 pt-3">
+        <span className="text-sm text-stone-600">Total estimado</span>
+        <span className="text-lg font-semibold text-stone-900">
           ${total.toLocaleString("es-AR", { minimumFractionDigits: 2 })}
         </span>
       </div>
@@ -136,7 +139,7 @@ export function NewSaleForm({ products }: { products: ProductOption[] }) {
       <button
         type="submit"
         disabled={isPending || products.length === 0}
-        className="w-full rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800 disabled:opacity-50"
+        className="w-full rounded-md bg-orange-600 px-4 py-2 text-sm font-medium text-white hover:bg-orange-700 disabled:opacity-50"
       >
         {isPending ? "Guardando..." : "Registrar venta"}
       </button>
