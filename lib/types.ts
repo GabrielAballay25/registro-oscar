@@ -8,31 +8,40 @@ export type ActionResult<T> =
   | { success: true; data: T }
   | { success: false; error: string };
 
+export type PaymentFrequency = "SEMANAL" | "QUINCENAL" | "MENSUAL";
+
+export type CustomerRecord = {
+  id: string;
+  firstName: string;
+  lastName: string;
+  phone: string | null;
+  address: string | null;
+  notes: string | null;
+};
+
 export type ProductOption = {
   id: string;
   name: string;
-  price: string;
+  description: string | null;
   stock: number;
 };
 
-export type SaleListItem = {
+export type SaleCard = {
   id: string;
+  customerId: string;
   customerName: string;
-  notes: string | null;
-  status: string;
-  createdAt: string;
-  total: string;
-  paid: string;
-  balance: string;
-};
-
-export type SaleItemDetail = {
-  id: string;
   productId: string;
   productName: string;
   quantity: number;
-  unitPrice: string;
-  subtotal: string;
+  saleDate: string;
+  installmentAmount: string;
+  paymentFrequency: PaymentFrequency;
+  installmentCount: number;
+  paidInstallments: number;
+  totalCollected: string;
+  status: string;
+  closedAt: string | null;
+  closedThisWeek: boolean;
 };
 
 export type PaymentDetail = {
@@ -41,43 +50,33 @@ export type PaymentDetail = {
   paymentDate: string;
   paymentMethod: string;
   note: string | null;
-  createdAt: string;
 };
 
-export type SaleDetail = {
-  id: string;
-  customerName: string;
+export type SaleDetail = SaleCard & {
   notes: string | null;
-  status: string;
-  createdAt: string;
-  items: SaleItemDetail[];
+  firstDueDate: string;
   payments: PaymentDetail[];
-  total: string;
-  paid: string;
-  balance: string;
 };
 
 export type PaymentReceiptData = {
   paymentId: string;
   customerName: string;
+  productName: string;
   amountPaid: string;
   paymentDate: string;
-  paymentMethod: string;
-  note: string | null;
-  saleTotal: string;
-  totalPaid: string;
-  balance: string;
+  installmentNumber: number;
+  installmentCount: number;
+  totalCollected: string;
   saleStatus: string;
-  items: SaleItemDetail[];
 };
 
 export type WeeklyClosurePaymentRow = {
   id: string;
   saleId: string;
   customerName: string;
+  productName: string;
   amountPaid: string;
   paymentDate: string;
-  paymentMethod: string;
 };
 
 export type WeeklyClosureSummary = {

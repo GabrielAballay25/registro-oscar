@@ -1,12 +1,14 @@
 "use client";
 
-import { useActionState, useEffect, useRef } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 import { createProduct } from "@/actions/products";
 import type { ActionResult, ProductOption } from "@/lib/types";
+import { Fab } from "./Fab";
 
 type State = ActionResult<ProductOption> | null;
 
 export function NewProductForm() {
+  const [open, setOpen] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
 
   const [state, formAction, isPending] = useActionState<State, FormData>(
@@ -14,7 +16,6 @@ export function NewProductForm() {
       return createProduct({
         name: String(formData.get("name") ?? ""),
         description: String(formData.get("description") ?? ""),
-        price: String(formData.get("price") ?? "0"),
         stock: Number(formData.get("stock") ?? 0),
       });
     },
@@ -23,65 +24,79 @@ export function NewProductForm() {
 
   useEffect(() => {
     if (state?.success) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- cierra el modal al crear el producto; sólo corre en la transición discreta que dispara useActionState, no en cada render.
+      setOpen(false);
       formRef.current?.reset();
     }
   }, [state]);
 
   return (
-    <form
-      ref={formRef}
-      action={formAction}
-      className="space-y-3 rounded-xl border border-orange-100 bg-white p-4 shadow-sm"
-    >
-      <h2 className="font-medium text-stone-900">Nuevo producto</h2>
+    <>
+      <Fab label="Nuevo producto" onClick={() => setOpen(true)} />
 
-      {state && !state.success ? (
-        <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{state.error}</p>
+      {open ? (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 p-4 sm:items-center">
+          <form
+            ref={formRef}
+            action={formAction}
+            className="w-full max-w-sm space-y-3 rounded-2xl bg-white p-5 shadow-lg"
+          >
+            <h2 className="font-semibold text-stone-900">Nuevo producto</h2>
+
+            {state && !state.success ? (
+              <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{state.error}</p>
+            ) : null}
+
+            <label className="flex flex-col gap-1 text-sm">
+              <span className="text-stone-600">Nombre *</span>
+              <input
+                name="name"
+                required
+                className="rounded-md border border-stone-300 px-3 py-2"
+              />
+            </label>
+
+            <label className="flex flex-col gap-1 text-sm">
+              <span className="text-stone-600">Descripción</span>
+              <textarea
+                name="description"
+                rows={2}
+                className="rounded-md border border-stone-300 px-3 py-2"
+              />
+            </label>
+
+            <label className="flex flex-col gap-1 text-sm">
+              <span className="text-stone-600">Stock *</span>
+              <input
+                name="stock"
+                type="number"
+                min="0"
+                step="1"
+                defaultValue={0}
+                required
+                className="rounded-md border border-stone-300 px-3 py-2"
+              />
+            </label>
+
+            <div className="flex gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setOpen(false)}
+                className="flex-1 rounded-md border border-stone-300 px-4 py-2 text-sm font-medium text-stone-700 hover:bg-stone-50"
+              >
+                Cancelar
+              </button>
+              <button
+                type="submit"
+                disabled={isPending}
+                className="flex-1 rounded-md bg-orange-600 px-4 py-2 text-sm font-medium text-white hover:bg-orange-700 disabled:opacity-50"
+              >
+                {isPending ? "Guardando..." : "Agregar"}
+              </button>
+            </div>
+          </form>
+        </div>
       ) : null}
-
-      <label className="flex flex-col gap-1 text-sm">
-        <span className="text-stone-600">Nombre</span>
-        <input name="name" required className="rounded-md border border-stone-300 px-3 py-1.5" />
-      </label>
-
-      <label className="flex flex-col gap-1 text-sm">
-        <span className="text-stone-600">Descripción (opcional)</span>
-        <input name="description" className="rounded-md border border-stone-300 px-3 py-1.5" />
-      </label>
-
-      <div className="grid grid-cols-2 gap-3">
-        <label className="flex flex-col gap-1 text-sm">
-          <span className="text-stone-600">Precio</span>
-          <input
-            name="price"
-            type="number"
-            step="0.01"
-            min="0"
-            required
-            className="rounded-md border border-stone-300 px-3 py-1.5"
-          />
-        </label>
-        <label className="flex flex-col gap-1 text-sm">
-          <span className="text-stone-600">Stock inicial</span>
-          <input
-            name="stock"
-            type="number"
-            min="0"
-            step="1"
-            defaultValue={0}
-            required
-            className="rounded-md border border-stone-300 px-3 py-1.5"
-          />
-        </label>
-      </div>
-
-      <button
-        type="submit"
-        disabled={isPending}
-        className="w-full rounded-md bg-orange-600 px-4 py-2 text-sm font-medium text-white hover:bg-orange-700 disabled:opacity-50"
-      >
-        {isPending ? "Guardando..." : "Agregar producto"}
-      </button>
-    </form>
+    </>
   );
 }

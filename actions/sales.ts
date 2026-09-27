@@ -3,176 +3,228 @@
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/prisma";
 import { requireAuth } from "@/lib/auth";
-import {
-  multiplyDecimalByInt,
-  subtractDecimalStrings,
-  sumDecimalStrings,
-} from "@/lib/money";
-import { plainDateTimeToDate } from "@/lib/temporal";
+import { sumDecimalStrings, toMoney } from "@/lib/money";
+import { dateInputToPlainDateTime, getWeekRange, plainDateTimeToDate } from "@/lib/temporal";
 import type {
   ActionResult,
+  PaymentDetail,
+  PaymentFrequency,
+  SaleCard,
   SaleDetail,
-  SaleItemDetail,
-  SaleListItem,
 } from "@/lib/types";
 
-function toSaleListItem(sale: {
+type RawPayment = { id: string; amountPaid: string; paymentDate: Temporal.PlainDateTime };
+
+type RawSale = {
   id: string;
-  customerName: string;
+  customerId: string;
+  productId: string;
+  quantity: number;
+  saleDate: Temporal.PlainDateTime;
+  installmentAmount: string;
+  paymentFrequency: string;
+  firstDueDate: Temporal.PlainDateTime;
+  installmentCount: number;
   notes: string | null;
-  status: string;
-  createdAt: Temporal.PlainDateTime;
-  items: Array<{ unitPrice: string; quantity: number }>;
-  payments: Array<{ amountPaid: string }>;
-}): SaleListItem {
-  const total = sumDecimalStrings(
-    sale.items.map((item) => multiplyDecimalByInt(item.unitPrice, item.quantity)),
-  );
-  const paid = sumDecimalStrings(sale.payments.map((p) => p.amountPaid));
+};
+
+function toSaleCard(
+  sale: RawSale,
+  customerName: string,
+  productName: string,
+  payments: RawPayment[],
+): SaleCard {
+  const paidInstallments = payments.length;
+  const totalCollected = sumDecimalStrings(payments.map((p) => p.amountPaid));
+  const status =
+    paidInstallments === 0
+      ? "PENDIENTE"
+      : paidInstallments >= sale.installmentCount
+        ? "COMPLETADO"
+        : "PARCIAL";
+
+  let closedAt: string | null = null;
+  let closedThisWeek = false;
+
+  if (status === "COMPLETADO" && payments.length > 0) {
+    const lastPayment = payments.reduce((latest, p) =>
+      plainDateTimeToDate(p.paymentDate) > plainDateTimeToDate(latest.paymentDate) ? p : latest,
+    );
+    const closedDate = plainDateTimeToDate(lastPayment.paymentDate);
+    closedAt = closedDate.toISOString();
+    const { startDate, endDate } = getWeekRange(new Date());
+    closedThisWeek = closedDate >= startDate && closedDate <= endDate;
+  }
 
   return {
     id: sale.id,
-    customerName: sale.customerName,
-    notes: sale.notes,
-    status: sale.status,
-    createdAt: plainDateTimeToDate(sale.createdAt).toISOString(),
-    total,
-    paid,
-    balance: subtractDecimalStrings(total, paid),
+    customerId: sale.customerId,
+    customerName,
+    productId: sale.productId,
+    productName,
+    quantity: sale.quantity,
+    saleDate: plainDateTimeToDate(sale.saleDate).toISOString(),
+    installmentAmount: sale.installmentAmount,
+    paymentFrequency: sale.paymentFrequency as PaymentFrequency,
+    installmentCount: sale.installmentCount,
+    paidInstallments,
+    totalCollected,
+    status,
+    closedAt,
+    closedThisWeek,
   };
 }
 
-export async function getActiveSales(): Promise<SaleListItem[]> {
-  const sales = await db.orm.public.Sale
-    .where((s) => s.status.neq("COMPLETADO"))
-    .orderBy((s) => s.createdAt.desc())
-    .include("items", (items) => items.select("quantity", "unitPrice"))
-    .include("payments", (payments) => payments.select("amountPaid"))
-    .all();
+async function nameMaps(customerIds: string[], productIds: string[]) {
+  const uniqueCustomerIds = [...new Set(customerIds)];
+  const uniqueProductIds = [...new Set(productIds)];
 
-  return sales.map(toSaleListItem);
+  const [customers, products] = await Promise.all([
+    uniqueCustomerIds.length
+      ? db.orm.public.Customer
+          .where((c) => c.id.in(uniqueCustomerIds))
+          .select("id", "firstName", "lastName")
+          .all()
+      : Promise.resolve([]),
+    uniqueProductIds.length
+      ? db.orm.public.Product.where((p) => p.id.in(uniqueProductIds)).select("id", "name").all()
+      : Promise.resolve([]),
+  ]);
+
+  return {
+    customerNameById: new Map(customers.map((c) => [c.id, `${c.firstName} ${c.lastName}`])),
+    productNameById: new Map(products.map((p) => [p.id, p.name])),
+  };
 }
 
-export async function getAllSales(): Promise<SaleListItem[]> {
+export async function getSaleCards(): Promise<SaleCard[]> {
   const sales = await db.orm.public.Sale
     .orderBy((s) => s.createdAt.desc())
-    .limit(100)
-    .include("items", (items) => items.select("quantity", "unitPrice"))
-    .include("payments", (payments) => payments.select("amountPaid"))
+    .include("payments", (p) => p.select("id", "amountPaid", "paymentDate"))
     .all();
 
-  return sales.map(toSaleListItem);
+  const { customerNameById, productNameById } = await nameMaps(
+    sales.map((s) => s.customerId),
+    sales.map((s) => s.productId),
+  );
+
+  return sales.map((sale) =>
+    toSaleCard(
+      sale,
+      customerNameById.get(sale.customerId) ?? "Cliente",
+      productNameById.get(sale.productId) ?? "Producto",
+      sale.payments,
+    ),
+  );
 }
 
 export async function getSaleDetail(saleId: string): Promise<SaleDetail | null> {
   const sale = await db.orm.public.Sale
     .where({ id: saleId })
-    .include("items", (items) => items)
-    .include("payments", (payments) => payments.orderBy((p) => p.paymentDate.desc()))
+    .include("payments", (p) => p.orderBy((row) => row.paymentDate.desc()))
     .first();
 
   if (!sale) return null;
 
-  const productIds = [...new Set(sale.items.map((item) => item.productId))];
-  const products = productIds.length
-    ? await db.orm.public.Product
-        .where((p) => p.id.in(productIds))
-        .select("id", "name")
-        .all()
-    : [];
-  const productNameById = new Map(products.map((p) => [p.id, p.name]));
+  const { customerNameById, productNameById } = await nameMaps(
+    [sale.customerId],
+    [sale.productId],
+  );
 
-  const items: SaleItemDetail[] = sale.items.map((item) => ({
-    id: item.id,
-    productId: item.productId,
-    productName: productNameById.get(item.productId) ?? "Producto",
-    quantity: item.quantity,
-    unitPrice: item.unitPrice,
-    subtotal: multiplyDecimalByInt(item.unitPrice, item.quantity),
+  const card = toSaleCard(
+    sale,
+    customerNameById.get(sale.customerId) ?? "Cliente",
+    productNameById.get(sale.productId) ?? "Producto",
+    sale.payments,
+  );
+
+  const payments: PaymentDetail[] = sale.payments.map((p) => ({
+    id: p.id,
+    amountPaid: p.amountPaid,
+    paymentDate: plainDateTimeToDate(p.paymentDate).toISOString(),
+    paymentMethod: p.paymentMethod,
+    note: p.note,
   }));
 
-  const total = sumDecimalStrings(items.map((item) => item.subtotal));
-  const paid = sumDecimalStrings(sale.payments.map((p) => p.amountPaid));
-
   return {
-    id: sale.id,
-    customerName: sale.customerName,
+    ...card,
     notes: sale.notes,
-    status: sale.status,
-    createdAt: plainDateTimeToDate(sale.createdAt).toISOString(),
-    items,
-    payments: sale.payments.map((p) => ({
-      id: p.id,
-      amountPaid: p.amountPaid,
-      paymentDate: plainDateTimeToDate(p.paymentDate).toISOString(),
-      paymentMethod: p.paymentMethod,
-      note: p.note,
-      createdAt: plainDateTimeToDate(p.createdAt).toISOString(),
-    })),
-    total,
-    paid,
-    balance: subtractDecimalStrings(total, paid),
+    firstDueDate: plainDateTimeToDate(sale.firstDueDate).toISOString(),
+    payments,
   };
 }
 
 export type CreateSaleInput = {
-  customerName: string;
+  customerId: string;
+  productId: string;
+  quantity: number;
+  saleDate: string; // "YYYY-MM-DD"
+  installmentAmount: string;
+  paymentFrequency: PaymentFrequency;
+  firstDueDate: string; // "YYYY-MM-DD"
+  installmentCount: number;
   notes?: string;
-  items: Array<{ productId: string; quantity: number }>;
 };
+
+const FREQUENCIES: PaymentFrequency[] = ["SEMANAL", "QUINCENAL", "MENSUAL"];
 
 export async function createSale(
   input: CreateSaleInput,
 ): Promise<ActionResult<{ id: string }>> {
   await requireAuth();
 
-  const customerName = input.customerName.trim();
-  if (!customerName) {
-    return { success: false, error: "El nombre del cliente es obligatorio." };
+  if (!input.customerId) return { success: false, error: "Seleccioná un cliente." };
+  if (!input.productId) return { success: false, error: "Seleccioná un producto." };
+  if (!Number.isInteger(input.quantity) || input.quantity < 1) {
+    return { success: false, error: "La cantidad debe ser un número entero mayor a 0." };
   }
-
-  const items = input.items.filter((item) => item.quantity > 0);
-  if (items.length === 0) {
-    return { success: false, error: "Agregá al menos un producto a la venta." };
+  if (!input.saleDate) return { success: false, error: "Indicá la fecha de venta." };
+  if (!input.firstDueDate) return { success: false, error: "Indicá la fecha del primer cobro." };
+  if (!FREQUENCIES.includes(input.paymentFrequency)) {
+    return { success: false, error: "Elegí cada cuánto se cobra." };
+  }
+  if (!Number.isInteger(input.installmentCount) || input.installmentCount < 1) {
+    return { success: false, error: "La cantidad de cuotas debe ser al menos 1." };
+  }
+  const installmentCents = Number(input.installmentAmount);
+  if (!Number.isFinite(installmentCents) || installmentCents <= 0) {
+    return { success: false, error: "El monto por cuota debe ser mayor a cero." };
   }
 
   try {
     const saleId = await db.transaction(async (tx) => {
+      const customer = await tx.orm.public.Customer.first({ id: input.customerId });
+      if (!customer) throw new Error("El cliente seleccionado no existe.");
+
+      const product = await tx.orm.public.Product.first({ id: input.productId });
+      if (!product) throw new Error("El producto seleccionado no existe.");
+      if (product.stock < input.quantity) {
+        throw new Error(
+          `Stock insuficiente para "${product.name}" (disponible: ${product.stock}).`,
+        );
+      }
+
       const sale = await tx.orm.public.Sale.create({
-        customerName,
+        customerId: input.customerId,
+        productId: input.productId,
+        quantity: input.quantity,
+        saleDate: dateInputToPlainDateTime(input.saleDate),
+        installmentAmount: toMoney(input.installmentAmount),
+        paymentFrequency: input.paymentFrequency,
+        firstDueDate: dateInputToPlainDateTime(input.firstDueDate),
+        installmentCount: input.installmentCount,
         notes: input.notes?.trim() || null,
       });
 
-      for (const item of items) {
-        const product = await tx.orm.public.Product.first({ id: item.productId });
-        if (!product) {
-          throw new Error("Uno de los productos seleccionados ya no existe.");
-        }
-        if (product.stock < item.quantity) {
-          throw new Error(
-            `Stock insuficiente para "${product.name}" (disponible: ${product.stock}).`,
-          );
-        }
-
-        await tx.orm.public.SaleItem.create({
-          saleId: sale.id,
-          productId: product.id,
-          quantity: item.quantity,
-          unitPrice: product.price,
-        });
-
-        await tx.orm.public.Product
-          .where({ id: product.id })
-          .update({ stock: product.stock - item.quantity });
-      }
+      await tx.orm.public.Product
+        .where({ id: product.id })
+        .update({ stock: product.stock - input.quantity });
 
       return sale.id;
     });
 
-    revalidatePath("/");
     revalidatePath("/ventas");
     revalidatePath("/productos");
-    revalidatePath("/ventas/nueva");
 
     return { success: true, data: { id: saleId } };
   } catch (err) {

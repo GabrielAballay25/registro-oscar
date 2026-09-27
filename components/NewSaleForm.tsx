@@ -1,32 +1,45 @@
 "use client";
 
 import { useActionState, useEffect, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createSale } from "@/actions/sales";
-import type { ActionResult, ProductOption } from "@/lib/types";
+import { Combobox } from "./Combobox";
+import { FREQUENCY_DAYS, FREQUENCY_LABELS } from "@/lib/frequency";
+import type { ActionResult, CustomerRecord, PaymentFrequency, ProductOption } from "@/lib/types";
 
-type SaleItemRow = { productId: string; quantity: number };
 type State = ActionResult<{ id: string }> | null;
 
-export function NewSaleForm({ products }: { products: ProductOption[] }) {
+function todayIsoDate(): string {
+  const now = new Date();
+  now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+  return now.toISOString().slice(0, 10);
+}
+
+export function NewSaleForm({
+  customers,
+  products,
+}: {
+  customers: CustomerRecord[];
+  products: ProductOption[];
+}) {
   const router = useRouter();
-  const [rows, setRows] = useState<SaleItemRow[]>([
-    { productId: products[0]?.id ?? "", quantity: 1 },
-  ]);
+  const [customerId, setCustomerId] = useState("");
+  const [productId, setProductId] = useState("");
+  const [frequency, setFrequency] = useState<PaymentFrequency>("SEMANAL");
 
   const [state, formAction, isPending] = useActionState<State, FormData>(
     async (_prev, formData) => {
-      const productIds = formData.getAll("productId") as string[];
-      const quantities = formData.getAll("quantity") as string[];
-      const items: SaleItemRow[] = productIds.map((productId, index) => ({
-        productId,
-        quantity: Number(quantities[index] ?? 0),
-      }));
-
       return createSale({
-        customerName: String(formData.get("customerName") ?? ""),
+        customerId: String(formData.get("customerId") ?? ""),
+        productId: String(formData.get("productId") ?? ""),
+        quantity: Number(formData.get("quantity") ?? 1),
+        saleDate: String(formData.get("saleDate") ?? ""),
+        installmentAmount: String(formData.get("installmentAmount") ?? ""),
+        paymentFrequency: String(formData.get("paymentFrequency") ?? "SEMANAL") as PaymentFrequency,
+        firstDueDate: String(formData.get("firstDueDate") ?? ""),
+        installmentCount: Number(formData.get("installmentCount") ?? 1),
         notes: String(formData.get("notes") ?? ""),
-        items,
       });
     },
     null,
@@ -38,23 +51,18 @@ export function NewSaleForm({ products }: { products: ProductOption[] }) {
     }
   }, [state, router]);
 
-  function updateRow(index: number, patch: Partial<SaleItemRow>) {
-    setRows((prev) => prev.map((row, i) => (i === index ? { ...row, ...patch } : row)));
-  }
+  const customerOptions = customers.map((c) => ({
+    id: c.id,
+    label: `${c.firstName} ${c.lastName}`,
+  }));
+  const productOptions = products.map((p) => ({
+    id: p.id,
+    label: p.name,
+    sublabel: `stock: ${p.stock}`,
+  }));
 
-  function addRow() {
-    setRows((prev) => [...prev, { productId: products[0]?.id ?? "", quantity: 1 }]);
-  }
-
-  function removeRow(index: number) {
-    setRows((prev) => prev.filter((_, i) => i !== index));
-  }
-
-  const total = rows.reduce((acc, row) => {
-    const product = products.find((p) => p.id === row.productId);
-    if (!product) return acc;
-    return acc + Number(product.price) * row.quantity;
-  }, 0);
+  const noCustomers = customers.length === 0;
+  const noProducts = products.length === 0;
 
   return (
     <form
@@ -65,91 +73,148 @@ export function NewSaleForm({ products }: { products: ProductOption[] }) {
         <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{state.error}</p>
       ) : null}
 
+      <div className="grid grid-cols-2 gap-3">
+        <label className="flex flex-col gap-1 text-sm">
+          <span className="text-stone-600">Cliente *</span>
+          <Combobox
+            name="customerId"
+            placeholder="Buscar por nombre o apellido..."
+            options={customerOptions}
+            value={customerId}
+            onChange={setCustomerId}
+          />
+        </label>
+        <label className="flex flex-col gap-1 text-sm">
+          <span className="text-stone-600">Producto *</span>
+          <Combobox
+            name="productId"
+            placeholder="Buscar por nombre del producto..."
+            options={productOptions}
+            value={productId}
+            onChange={setProductId}
+          />
+        </label>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
+        <label className="flex flex-col gap-1 text-sm">
+          <span className="text-stone-600">Cantidad *</span>
+          <input
+            name="quantity"
+            type="number"
+            min={1}
+            defaultValue={1}
+            required
+            className="rounded-md border border-stone-300 px-3 py-2"
+          />
+        </label>
+        <label className="flex flex-col gap-1 text-sm">
+          <span className="text-stone-600">Fecha de venta</span>
+          <input
+            name="saleDate"
+            type="date"
+            required
+            defaultValue={todayIsoDate()}
+            className="rounded-md border border-stone-300 px-3 py-2"
+          />
+        </label>
+      </div>
+
+      <div className="rounded-lg bg-orange-50 p-3 text-sm text-stone-700">
+        Esta venta se cobra en <strong>cuotas periódicas</strong>. Si es un pago único, dejá la
+        cantidad de cuotas en <strong>1</strong>.
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
+        <label className="flex flex-col gap-1 text-sm">
+          <span className="text-stone-600">Cada cuánto se cobra *</span>
+          <select
+            name="paymentFrequency"
+            required
+            value={frequency}
+            onChange={(e) => setFrequency(e.target.value as PaymentFrequency)}
+            className="rounded-md border border-stone-300 px-3 py-2"
+          >
+            {(Object.keys(FREQUENCY_LABELS) as PaymentFrequency[]).map((freq) => (
+              <option key={freq} value={freq}>
+                {FREQUENCY_LABELS[freq]}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="flex flex-col gap-1 text-sm">
+          <span className="text-stone-600">Cantidad de cuotas *</span>
+          <input
+            name="installmentCount"
+            type="number"
+            min={1}
+            defaultValue={1}
+            required
+            className="rounded-md border border-stone-300 px-3 py-2"
+          />
+        </label>
+      </div>
+
       <label className="flex flex-col gap-1 text-sm">
-        <span className="text-stone-600">Cliente</span>
+        <span className="text-stone-600">Monto por cuota *</span>
         <input
-          name="customerName"
+          name="installmentAmount"
+          type="number"
+          step="0.01"
+          min="0.01"
           required
-          placeholder="Nombre del cliente"
+          placeholder="Lo que el cliente te da cada vez"
           className="rounded-md border border-stone-300 px-3 py-2"
         />
       </label>
 
       <label className="flex flex-col gap-1 text-sm">
-        <span className="text-stone-600">
-          Notas (modalidad de pago, ej: cuotas semanales de $5000)
+        <span className="text-stone-600">Fecha de inicio del cobro *</span>
+        <input
+          name="firstDueDate"
+          type="date"
+          required
+          defaultValue={todayIsoDate()}
+          className="rounded-md border border-stone-300 px-3 py-2"
+        />
+        <span className="text-xs text-stone-400">
+          La primera cuota vence esta fecha; las siguientes, cada {FREQUENCY_DAYS[frequency]} días.
         </span>
-        <input name="notes" className="rounded-md border border-stone-300 px-3 py-2" />
       </label>
 
-      <div className="space-y-2">
-        <div className="flex items-center justify-between">
-          <span className="text-sm font-medium text-stone-700">Productos</span>
-          <button
-            type="button"
-            onClick={addRow}
-            className="text-sm font-medium text-orange-600 hover:underline"
-          >
-            + Agregar producto
-          </button>
-        </div>
-
-        {rows.map((row, index) => (
-          <div key={index} className="flex items-center gap-2">
-            <select
-              name="productId"
-              value={row.productId}
-              onChange={(e) => updateRow(index, { productId: e.target.value })}
-              className="flex-1 rounded-md border border-stone-300 px-3 py-2 text-sm"
-            >
-              <option value="">Seleccionar producto</option>
-              {products.map((product) => (
-                <option key={product.id} value={product.id}>
-                  {product.name} — ${product.price} (stock: {product.stock})
-                </option>
-              ))}
-            </select>
-            <input
-              name="quantity"
-              type="number"
-              min={1}
-              value={row.quantity}
-              onChange={(e) => updateRow(index, { quantity: Number(e.target.value) })}
-              className="w-20 rounded-md border border-stone-300 px-3 py-2 text-sm"
-            />
-            <button
-              type="button"
-              onClick={() => removeRow(index)}
-              disabled={rows.length === 1}
-              className="text-sm text-red-500 hover:underline disabled:opacity-30"
-            >
-              Quitar
-            </button>
-          </div>
-        ))}
-      </div>
-
-      <div className="flex items-center justify-between border-t border-orange-100 pt-3">
-        <span className="text-sm text-stone-600">Total estimado</span>
-        <span className="text-lg font-semibold text-stone-900">
-          ${total.toLocaleString("es-AR", { minimumFractionDigits: 2 })}
-        </span>
-      </div>
+      <label className="flex flex-col gap-1 text-sm">
+        <span className="text-stone-600">Observaciones</span>
+        <textarea
+          name="notes"
+          rows={2}
+          placeholder="Notas sobre esta venta (opcional)"
+          className="rounded-md border border-stone-300 px-3 py-2"
+        />
+      </label>
 
       <button
         type="submit"
-        disabled={isPending || products.length === 0}
+        disabled={isPending || noCustomers || noProducts}
         className="w-full rounded-md bg-orange-600 px-4 py-2 text-sm font-medium text-white hover:bg-orange-700 disabled:opacity-50"
       >
         {isPending ? "Guardando..." : "Registrar venta"}
       </button>
 
-      {products.length === 0 ? (
+      {noCustomers ? (
         <p className="text-sm text-amber-600">
-          No hay productos cargados todavía.{" "}
-          <a href="/productos" className="underline">
+          No hay clientes cargados.{" "}
+          <Link href="/" className="underline">
             Cargá uno primero
-          </a>
+          </Link>
+          .
+        </p>
+      ) : null}
+      {noProducts ? (
+        <p className="text-sm text-amber-600">
+          No hay productos cargados.{" "}
+          <Link href="/productos" className="underline">
+            Cargá uno primero
+          </Link>
           .
         </p>
       ) : null}

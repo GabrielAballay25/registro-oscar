@@ -1,8 +1,9 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getSaleDetail } from "@/actions/sales";
-import { RegisterPaymentForm } from "@/components/RegisterPaymentForm";
+import { MarkPaymentModal } from "@/components/MarkPaymentModal";
 import { StatusBadge } from "@/components/StatusBadge";
+import { FREQUENCY_LABELS } from "@/lib/frequency";
 import { formatCurrency } from "@/lib/money";
 
 export default async function SaleDetailPage({
@@ -22,10 +23,11 @@ export default async function SaleDetailPage({
 
       <header className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-xl font-semibold text-stone-900">{sale.customerName}</h1>
-          {sale.notes ? <p className="text-sm text-stone-500">{sale.notes}</p> : null}
+          <h1 className="text-xl font-semibold text-stone-900">{sale.productName}</h1>
+          <p className="text-sm text-stone-500">{sale.customerName}</p>
           <p className="text-xs text-stone-400">
-            Venta del {new Date(sale.createdAt).toLocaleDateString("es-AR")}
+            Venta del {new Date(sale.saleDate).toLocaleDateString("es-AR")} ·{" "}
+            {FREQUENCY_LABELS[sale.paymentFrequency]}
           </p>
         </div>
         <StatusBadge status={sale.status} />
@@ -33,33 +35,41 @@ export default async function SaleDetailPage({
 
       <section className="rounded-xl border border-orange-100 bg-white p-4 shadow-sm">
         <h2 className="mb-2 font-medium text-stone-900">Detalle de la venta</h2>
-        <ul className="divide-y divide-orange-50 text-sm">
-          {sale.items.map((item) => (
-            <li key={item.id} className="flex justify-between py-1.5">
-              <span>
-                {item.quantity} × {item.productName}
-              </span>
-              <span className="tabular-nums">{formatCurrency(item.subtotal)}</span>
-            </li>
-          ))}
-        </ul>
-        <div className="mt-3 space-y-1 border-t border-orange-100 pt-3 text-sm">
+        <dl className="space-y-1.5 text-sm">
           <div className="flex justify-between">
-            <span className="text-stone-500">Total</span>
-            <span className="font-medium">{formatCurrency(sale.total)}</span>
+            <dt className="text-stone-500">Cantidad</dt>
+            <dd className="font-medium">{sale.quantity}</dd>
           </div>
           <div className="flex justify-between">
-            <span className="text-stone-500">Pagado</span>
-            <span className="font-medium">{formatCurrency(sale.paid)}</span>
+            <dt className="text-stone-500">Monto por cuota</dt>
+            <dd className="font-medium">{formatCurrency(sale.installmentAmount)}</dd>
+          </div>
+          <div className="flex justify-between">
+            <dt className="text-stone-500">Primer cobro</dt>
+            <dd className="font-medium">
+              {new Date(sale.firstDueDate).toLocaleDateString("es-AR")}
+            </dd>
+          </div>
+          <div className="flex justify-between">
+            <dt className="text-stone-500">Cuotas</dt>
+            <dd className="font-medium">
+              {sale.paidInstallments} de {sale.installmentCount}
+            </dd>
           </div>
           <div className="flex justify-between text-base">
-            <span className="font-semibold">Saldo</span>
-            <span className="font-bold">{formatCurrency(sale.balance)}</span>
+            <dt className="font-semibold text-stone-900">Total cobrado</dt>
+            <dd className="font-bold">{formatCurrency(sale.totalCollected)}</dd>
           </div>
-        </div>
+          {sale.notes ? (
+            <div className="border-t border-orange-100 pt-1.5">
+              <dt className="text-stone-500">Observaciones</dt>
+              <dd className="mt-0.5">{sale.notes}</dd>
+            </div>
+          ) : null}
+        </dl>
       </section>
 
-      <RegisterPaymentForm saleId={sale.id} initialStatus={sale.status} />
+      <MarkPaymentModal saleId={sale.id} disabled={sale.status === "COMPLETADO"} />
 
       <section>
         <h2 className="mb-2 font-medium text-stone-900">Historial de cobros</h2>
@@ -69,15 +79,7 @@ export default async function SaleDetailPage({
           <ul className="divide-y divide-orange-100 rounded-xl border border-orange-100 bg-white text-sm shadow-sm">
             {sale.payments.map((payment) => (
               <li key={payment.id} className="flex justify-between px-4 py-2">
-                <div>
-                  <p>
-                    {new Date(payment.paymentDate).toLocaleDateString("es-AR")} ·{" "}
-                    {payment.paymentMethod}
-                  </p>
-                  {payment.note ? (
-                    <p className="text-xs text-stone-500">{payment.note}</p>
-                  ) : null}
-                </div>
+                <span>{new Date(payment.paymentDate).toLocaleDateString("es-AR")}</span>
                 <span className="font-medium tabular-nums">
                   {formatCurrency(payment.amountPaid)}
                 </span>

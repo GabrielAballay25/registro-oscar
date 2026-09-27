@@ -3,23 +3,12 @@
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/prisma";
 import { requireAuth } from "@/lib/auth";
-import {
-  decimalToCents,
-  multiplyDecimalByInt,
-  subtractDecimalStrings,
-  sumDecimalStrings,
-  toMoney,
-} from "@/lib/money";
-import {
-  dateInputToPlainDateTime,
-  getWeekRange,
-  plainDateTimeToDate,
-} from "@/lib/temporal";
+import { decimalToCents, sumDecimalStrings, toMoney } from "@/lib/money";
+import { dateInputToPlainDateTime, getWeekRange, plainDateTimeToDate } from "@/lib/temporal";
 import type {
   ActionResult,
   ClosureRecord,
   PaymentReceiptData,
-  SaleItemDetail,
   WeeklyClosureSummary,
 } from "@/lib/types";
 
@@ -27,8 +16,6 @@ export type RegisterPaymentInput = {
   saleId: string;
   amountPaid: string;
   paymentDate: string; // "YYYY-MM-DD"
-  paymentMethod: string;
-  note?: string;
 };
 
 export async function registerPayment(
@@ -48,69 +35,50 @@ export async function registerPayment(
     const receipt = await db.transaction(async (tx) => {
       const sale = await tx.orm.public.Sale
         .where({ id: input.saleId })
-        .include("items", (items) => items)
-        .include("payments", (payments) => payments)
+        .include("payments", (p) => p)
         .first();
 
       if (!sale) throw new Error("La venta no existe.");
+      if (sale.payments.length >= sale.installmentCount) {
+        throw new Error("Esta venta ya tiene todas sus cuotas cobradas.");
+      }
 
-      const productIds = [...new Set(sale.items.map((item) => item.productId))];
-      const products = productIds.length
-        ? await tx.orm.public.Product
-            .where((p) => p.id.in(productIds))
-            .select("id", "name")
-            .all()
-        : [];
-      const productNameById = new Map(products.map((p) => [p.id, p.name]));
-
-      const items: SaleItemDetail[] = sale.items.map((item) => ({
-        id: item.id,
-        productId: item.productId,
-        productName: productNameById.get(item.productId) ?? "Producto",
-        quantity: item.quantity,
-        unitPrice: item.unitPrice,
-        subtotal: multiplyDecimalByInt(item.unitPrice, item.quantity),
-      }));
-
-      const total = sumDecimalStrings(items.map((item) => item.subtotal));
-      const paidBefore = sumDecimalStrings(sale.payments.map((p) => p.amountPaid));
-      const paidAfter = sumDecimalStrings([paidBefore, input.amountPaid]);
-      const balance = subtractDecimalStrings(total, paidAfter);
-
-      const newStatus =
-        decimalToCents(balance) <= 0
-          ? "COMPLETADO"
-          : decimalToCents(paidAfter) > 0
-            ? "PARCIAL"
-            : "PENDIENTE";
+      const [customer, product] = await Promise.all([
+        tx.orm.public.Customer.first({ id: sale.customerId }),
+        tx.orm.public.Product.first({ id: sale.productId }),
+      ]);
 
       const payment = await tx.orm.public.Payment.create({
         saleId: sale.id,
         amountPaid: toMoney(input.amountPaid),
         paymentDate: dateInputToPlainDateTime(input.paymentDate),
-        paymentMethod: input.paymentMethod || "Efectivo",
-        note: input.note?.trim() || null,
       });
+
+      const paidInstallments = sale.payments.length + 1;
+      const newStatus =
+        paidInstallments >= sale.installmentCount ? "COMPLETADO" : "PARCIAL";
 
       await tx.orm.public.Sale.where({ id: sale.id }).update({ status: newStatus });
 
+      const totalCollected = sumDecimalStrings([
+        ...sale.payments.map((p) => p.amountPaid),
+        payment.amountPaid,
+      ]);
+
       const data: PaymentReceiptData = {
         paymentId: payment.id,
-        customerName: sale.customerName,
+        customerName: customer ? `${customer.firstName} ${customer.lastName}` : "Cliente",
+        productName: product?.name ?? "Producto",
         amountPaid: payment.amountPaid,
         paymentDate: plainDateTimeToDate(payment.paymentDate).toISOString(),
-        paymentMethod: payment.paymentMethod,
-        note: payment.note,
-        saleTotal: total,
-        totalPaid: paidAfter,
-        balance,
+        installmentNumber: paidInstallments,
+        installmentCount: sale.installmentCount,
+        totalCollected,
         saleStatus: newStatus,
-        items,
       };
       return data;
     });
 
-    revalidatePath("/");
     revalidatePath("/ventas");
     revalidatePath(`/ventas/${input.saleId}`);
     revalidatePath("/cobros");
@@ -137,23 +105,41 @@ export async function getWeeklyClosureSummary(): Promise<WeeklyClosureSummary> {
   const sales = saleIds.length
     ? await db.orm.public.Sale
         .where((s) => s.id.in(saleIds))
-        .select("id", "customerName")
+        .select("id", "customerId", "productId")
         .all()
     : [];
-  const customerNameBySaleId = new Map(sales.map((s) => [s.id, s.customerName]));
+
+  const customerIds = [...new Set(sales.map((s) => s.customerId))];
+  const productIds = [...new Set(sales.map((s) => s.productId))];
+
+  const [customers, products] = await Promise.all([
+    customerIds.length
+      ? db.orm.public.Customer.where((c) => c.id.in(customerIds)).select("id", "firstName", "lastName").all()
+      : Promise.resolve([]),
+    productIds.length
+      ? db.orm.public.Product.where((p) => p.id.in(productIds)).select("id", "name").all()
+      : Promise.resolve([]),
+  ]);
+
+  const customerNameById = new Map(customers.map((c) => [c.id, `${c.firstName} ${c.lastName}`]));
+  const productNameById = new Map(products.map((p) => [p.id, p.name]));
+  const saleById = new Map(sales.map((s) => [s.id, s]));
 
   return {
     startDate: startDate.toISOString(),
     endDate: endDate.toISOString(),
     total: sumDecimalStrings(payments.map((p) => p.amountPaid)),
-    payments: payments.map((p) => ({
-      id: p.id,
-      saleId: p.saleId,
-      customerName: customerNameBySaleId.get(p.saleId) ?? "Cliente",
-      amountPaid: p.amountPaid,
-      paymentDate: plainDateTimeToDate(p.paymentDate).toISOString(),
-      paymentMethod: p.paymentMethod,
-    })),
+    payments: payments.map((p) => {
+      const sale = saleById.get(p.saleId);
+      return {
+        id: p.id,
+        saleId: p.saleId,
+        customerName: sale ? (customerNameById.get(sale.customerId) ?? "Cliente") : "Cliente",
+        productName: sale ? (productNameById.get(sale.productId) ?? "Producto") : "Producto",
+        amountPaid: p.amountPaid,
+        paymentDate: plainDateTimeToDate(p.paymentDate).toISOString(),
+      };
+    }),
   };
 }
 

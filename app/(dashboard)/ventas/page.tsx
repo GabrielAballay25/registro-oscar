@@ -1,11 +1,9 @@
-import Link from "next/link";
-import { getAllSales } from "@/actions/sales";
+import { getSaleCards } from "@/actions/sales";
 import { Fab } from "@/components/Fab";
-import { StatusBadge } from "@/components/StatusBadge";
-import { formatCurrency } from "@/lib/money";
+import { SaleCard } from "@/components/SaleCard";
 
 export default async function VentasPage() {
-  const sales = await getAllSales();
+  const sales = await getSaleCards();
 
   return (
     <div className="mx-auto w-full max-w-2xl px-4 py-6">
@@ -22,24 +20,7 @@ export default async function VentasPage() {
         <ul className="space-y-2">
           {sales.map((sale) => (
             <li key={sale.id}>
-              <Link
-                href={`/ventas/${sale.id}`}
-                className="flex items-center justify-between gap-4 rounded-xl border border-orange-100 bg-white px-4 py-3 shadow-sm active:bg-orange-50"
-              >
-                <div className="min-w-0">
-                  <p className="truncate font-medium text-stone-900">{sale.customerName}</p>
-                  <p className="truncate text-xs text-stone-500">
-                    {new Date(sale.createdAt).toLocaleDateString("es-AR")}
-                    {sale.notes ? ` · ${sale.notes}` : ""}
-                  </p>
-                </div>
-                <div className="flex shrink-0 items-center gap-3">
-                  <p className="text-sm font-semibold text-stone-900">
-                    {formatCurrency(sale.total)}
-                  </p>
-                  <StatusBadge status={sale.status} />
-                </div>
-              </Link>
+              <SaleCard sale={sale} />
             </li>
           ))}
         </ul>

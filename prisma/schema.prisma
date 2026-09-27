@@ -16,53 +16,62 @@ model User {
   createdAt    DateTime @default(now())
 }
 
-// 2. Catalogo de Productos
+// 2. Clientes (ABMC)
+model Customer {
+  id        String   @id @default(uuid())
+  firstName String
+  lastName  String
+  phone     String?
+  address   String?
+  notes     String?
+  sales     Sale[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// 3. Catalogo de Productos
 model Product {
-  id          String     @id @default(uuid())
+  id          String   @id @default(uuid())
   name        String
   description String?
-  price       Decimal    @db.Decimal(10, 2)
-  stock       Int        @default(0)
-  saleItems   SaleItem[]
-  createdAt   DateTime   @default(now())
+  stock       Int      @default(0)
+  sales       Sale[]
+  createdAt   DateTime @default(now())
 }
 
-// 3. Registro de Ventas
+// 4. Registro de Ventas: un producto por venta, con plan de cuotas propio
 model Sale {
-  id          String     @id @default(uuid())
-  customerName String    // Nombre del cliente final para identificar la venta rápidamente
-  notes       String?    // Modalidad pactada (ej: "Cuotas semanales de $5000")
-  status      String     @default("PENDIENTE") // "PENDIENTE", "PARCIAL", "COMPLETADO"
-  items       SaleItem[]
-  payments    Payment[]
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
+  id                String    @id @default(uuid())
+  customerId        String
+  customer          Customer  @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  productId         String
+  product           Product   @relation(fields: [productId], references: [id], onDelete: Restrict)
+  quantity          Int       @default(1)
+  saleDate          DateTime // Fecha en la que se pactó la venta
+  installmentAmount Decimal   @db.Decimal(10, 2) // Monto acordado por cuota
+  paymentFrequency  String // "SEMANAL" | "QUINCENAL" | "MENSUAL"
+  firstDueDate      DateTime // Fecha del primer cobro
+  installmentCount  Int // Cantidad de cuotas pactadas
+  notes             String?
+  status            String    @default("PENDIENTE") // "PENDIENTE", "PARCIAL", "COMPLETADO"
+  payments          Payment[]
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
 }
 
-// Detalle de articulos de la venta
-model SaleItem {
-  id        String  @id @default(uuid())
-  saleId    String
-  sale      Sale    @relation(fields: [saleId], references: [id], onDelete: Cascade)
-  productId String
-  product   Product @relation(fields: [productId], references: [id])
-  quantity  Int
-  unitPrice Decimal @db.Decimal(10, 2)
-}
-
-// 4. Registro de Cobros / Entregas (Requerimientos 1 y 3)
+// 5. Registro de Cobros / cuotas
 model Payment {
   id            String   @id @default(uuid())
   saleId        String
   sale          Sale     @relation(fields: [saleId], references: [id], onDelete: Cascade)
   amountPaid    Decimal  @db.Decimal(10, 2) // Monto exacto que entregó el cliente en esta cuota
-  paymentDate   DateTime @default(now())   // Fecha y hora del cobro
-  paymentMethod String   @default("Efectivo") // "Efectivo", "Transferencia", etc.
-  note          String?  // Ej: "Pago parcial de la cuota 2"
+  paymentDate   DateTime // Fecha del cobro
+  paymentMethod String   @default("Efectivo")
+  note          String?
   createdAt     DateTime @default(now())
 }
 
-// 5. Cierre de Caja Semanal (Requerimiento 4)
+// 6. Cierre de Caja Semanal
 model WeeklyClosure {
   id          String   @id @default(uuid())
   startDate   DateTime // Lunes

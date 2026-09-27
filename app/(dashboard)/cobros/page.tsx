@@ -36,7 +36,7 @@ export default async function CobrosPage() {
               <li key={payment.id} className="flex justify-between py-1.5">
                 <span>
                   {new Date(payment.paymentDate).toLocaleDateString("es-AR")} ·{" "}
-                  {payment.customerName} ({payment.paymentMethod})
+                  {payment.customerName} ({payment.productName})
                 </span>
                 <span className="tabular-nums">{formatCurrency(payment.amountPaid)}</span>
               </li>
