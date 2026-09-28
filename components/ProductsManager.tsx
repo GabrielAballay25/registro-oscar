@@ -5,6 +5,7 @@ import { deleteProduct, listProducts } from "@/actions/products";
 import type { ProductOption } from "@/lib/types";
 import { Fab } from "./Fab";
 import { ProductFormModal } from "./ProductFormModal";
+import { IconBox, IconPencil, IconTrash } from "./icons";
 
 export function ProductsManager({ initialProducts }: { initialProducts: ProductOption[] }) {
   const [products, setProducts] = useState(initialProducts);
@@ -38,26 +39,33 @@ export function ProductsManager({ initialProducts }: { initialProducts: ProductO
               key={product.id}
               className="rounded-xl border border-orange-100 bg-white px-4 py-3 shadow-sm"
             >
-              <div className="flex items-center justify-between gap-4">
-                <span className="font-medium text-stone-900">{product.name}</span>
-                <span className="text-sm text-stone-600">stock: {product.stock}</span>
+              <div className="flex items-center gap-3">
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-orange-50 text-orange-600">
+                  <IconBox className="h-4 w-4" />
+                </span>
+                <div className="flex min-w-0 flex-1 items-center justify-between gap-4">
+                  <span className="truncate font-medium text-stone-900">{product.name}</span>
+                  <span className="shrink-0 text-sm text-stone-600">stock: {product.stock}</span>
+                </div>
               </div>
               {product.description ? (
-                <p className="mt-1 text-xs text-stone-500">{product.description}</p>
+                <p className="mt-1 pl-12 text-xs text-stone-500">{product.description}</p>
               ) : null}
-              <div className="mt-2 flex gap-3 text-sm">
+              <div className="mt-2 flex gap-3 pl-12 text-sm">
                 <button
                   type="button"
                   onClick={() => setModalProduct(product)}
-                  className="font-medium text-orange-600 hover:underline"
+                  className="inline-flex items-center gap-1 font-medium text-orange-600 hover:underline"
                 >
+                  <IconPencil className="h-3.5 w-3.5" />
                   Editar
                 </button>
                 <button
                   type="button"
                   onClick={() => handleDelete(product)}
-                  className="font-medium text-red-500 hover:underline"
+                  className="inline-flex items-center gap-1 font-medium text-red-500 hover:underline"
                 >
+                  <IconTrash className="h-3.5 w-3.5" />
                   Eliminar
                 </button>
               </div>

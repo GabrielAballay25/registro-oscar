@@ -4,6 +4,7 @@ import { getSaleDetail } from "@/actions/sales";
 import { DeleteSaleButton } from "@/components/DeleteSaleButton";
 import { MarkPaymentModal } from "@/components/MarkPaymentModal";
 import { StatusBadge } from "@/components/StatusBadge";
+import { IconPencil, IconWallet } from "@/components/icons";
 import { FREQUENCY_LABELS } from "@/lib/frequency";
 import { formatCurrency } from "@/lib/money";
 
@@ -24,8 +25,9 @@ export default async function SaleDetailPage({
         </Link>
         <Link
           href={`/ventas/${sale.id}/editar`}
-          className="text-sm font-medium text-orange-600 hover:underline"
+          className="inline-flex items-center gap-1 text-sm font-medium text-orange-600 hover:underline"
         >
+          <IconPencil className="h-3.5 w-3.5" />
           Editar
         </Link>
       </div>
@@ -87,8 +89,11 @@ export default async function SaleDetailPage({
         ) : (
           <ul className="divide-y divide-orange-100 rounded-xl border border-orange-100 bg-white text-sm shadow-sm">
             {sale.payments.map((payment) => (
-              <li key={payment.id} className="flex justify-between px-4 py-2">
-                <span>{new Date(payment.paymentDate).toLocaleDateString("es-AR")}</span>
+              <li key={payment.id} className="flex items-center gap-2 px-4 py-2">
+                <IconWallet className="h-4 w-4 shrink-0 text-orange-400" />
+                <span className="flex-1">
+                  {new Date(payment.paymentDate).toLocaleDateString("es-AR")}
+                </span>
                 <span className="font-medium tabular-nums">
                   {formatCurrency(payment.amountPaid)}
                 </span>

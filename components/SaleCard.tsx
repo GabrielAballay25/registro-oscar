@@ -2,6 +2,7 @@ import Link from "next/link";
 import { FREQUENCY_LABELS } from "@/lib/frequency";
 import { formatCurrency } from "@/lib/money";
 import type { SaleCard as SaleCardData } from "@/lib/types";
+import { IconBox } from "./icons";
 import { StatusBadge } from "./StatusBadge";
 
 function Row({ label, value, strong }: { label: string; value: string; strong?: boolean }) {
@@ -22,9 +23,12 @@ export function SaleCard({ sale }: { sale: SaleCardData }) {
       className="block rounded-xl border border-orange-100 bg-white p-4 shadow-sm active:bg-orange-50"
     >
       <div className="flex items-start justify-between gap-2">
-        <div className="flex items-center gap-2">
-          <h3 className="font-semibold text-stone-900">{sale.productName}</h3>
-          <span className="rounded-full bg-stone-100 px-2 py-0.5 text-xs font-medium text-stone-600">
+        <div className="flex min-w-0 items-center gap-2">
+          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-orange-50 text-orange-600">
+            <IconBox className="h-4 w-4" />
+          </span>
+          <h3 className="truncate font-semibold text-stone-900">{sale.productName}</h3>
+          <span className="shrink-0 rounded-full bg-stone-100 px-2 py-0.5 text-xs font-medium text-stone-600">
             {FREQUENCY_LABELS[sale.paymentFrequency]}
           </span>
         </div>

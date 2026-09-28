@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { deleteSale } from "@/actions/sales";
+import { IconTrash } from "./icons";
 
 export function DeleteSaleButton({ saleId, label }: { saleId: string; label: string }) {
   const router = useRouter();
@@ -30,8 +31,9 @@ export function DeleteSaleButton({ saleId, label }: { saleId: string; label: str
         type="button"
         onClick={handleDelete}
         disabled={isPending}
-        className="text-sm font-medium text-red-500 hover:underline disabled:opacity-50"
+        className="inline-flex items-center gap-1 text-sm font-medium text-red-500 hover:underline disabled:opacity-50"
       >
+        <IconTrash className="h-3.5 w-3.5" />
         {isPending ? "Eliminando..." : "Eliminar venta"}
       </button>
     </div>

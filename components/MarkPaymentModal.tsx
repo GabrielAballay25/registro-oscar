@@ -3,6 +3,7 @@
 import { useActionState, useEffect, useRef, useState } from "react";
 import { registerPayment } from "@/actions/payments";
 import type { ActionResult, PaymentReceiptData } from "@/lib/types";
+import { IconWallet } from "./icons";
 import { PaymentReceiptModal } from "./PaymentReceiptModal";
 
 type State = ActionResult<PaymentReceiptData> | null;
@@ -57,8 +58,9 @@ export function MarkPaymentModal({ saleId, disabled }: { saleId: string; disable
         <button
           type="button"
           onClick={() => setOpen(true)}
-          className="w-full rounded-md bg-orange-600 px-4 py-2 text-sm font-medium text-white hover:bg-orange-700"
+          className="flex w-full items-center justify-center gap-2 rounded-md bg-orange-600 px-4 py-2 text-sm font-medium text-white hover:bg-orange-700"
         >
+          <IconWallet className="h-4 w-4" />
           Marcar cobro
         </button>
       )}

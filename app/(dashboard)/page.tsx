@@ -2,8 +2,10 @@ import { listCustomers } from "@/actions/customers";
 import { listProducts } from "@/actions/products";
 import { getSaleCards } from "@/actions/sales";
 import { getWeeklyClosureSummary } from "@/actions/payments";
+import { PageHeader } from "@/components/PageHeader";
 import { SaleCard } from "@/components/SaleCard";
 import { StatCard } from "@/components/StatCard";
+import { IconBox, IconCart, IconHome, IconUsers, IconWallet } from "@/components/icons";
 import { formatCurrency } from "@/lib/money";
 
 export default async function DashboardPage() {
@@ -18,19 +20,32 @@ export default async function DashboardPage() {
 
   return (
     <div className="mx-auto w-full max-w-2xl space-y-6 px-4 py-6">
-      <header>
-        <h1 className="text-xl font-semibold text-stone-900">Dashboard</h1>
-        <p className="text-sm text-stone-500">Resumen general del negocio.</p>
-      </header>
+      <PageHeader title="Dashboard" subtitle="Resumen general del negocio." Icon={IconHome} />
 
       <div className="grid grid-cols-2 gap-3">
-        <StatCard label="Clientes" value={String(customers.length)} href="/clientes" />
-        <StatCard label="Productos" value={String(products.length)} href="/productos" />
-        <StatCard label="Ventas activas" value={String(activeSales.length)} href="/ventas" />
+        <StatCard
+          label="Clientes"
+          value={String(customers.length)}
+          href="/clientes"
+          Icon={IconUsers}
+        />
+        <StatCard
+          label="Productos"
+          value={String(products.length)}
+          href="/productos"
+          Icon={IconBox}
+        />
+        <StatCard
+          label="Ventas activas"
+          value={String(activeSales.length)}
+          href="/ventas"
+          Icon={IconCart}
+        />
         <StatCard
           label="Cobrado esta semana"
           value={formatCurrency(weekSummary.total)}
           href="/cobros"
+          Icon={IconWallet}
         />
       </div>
 

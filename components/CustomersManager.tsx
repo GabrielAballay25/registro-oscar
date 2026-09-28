@@ -5,6 +5,7 @@ import { deleteCustomer, listCustomers } from "@/actions/customers";
 import type { CustomerRecord } from "@/lib/types";
 import { CustomerFormModal } from "./CustomerFormModal";
 import { Fab } from "./Fab";
+import { IconPencil, IconTrash, IconUsers } from "./icons";
 
 export function CustomersManager({ initialCustomers }: { initialCustomers: CustomerRecord[] }) {
   const [customers, setCustomers] = useState(initialCustomers);
@@ -62,9 +63,12 @@ export function CustomersManager({ initialCustomers }: { initialCustomers: Custo
           {customers.map((customer) => (
             <li
               key={customer.id}
-              className="flex items-center justify-between gap-3 rounded-xl border border-orange-100 bg-white px-4 py-3 shadow-sm"
+              className="flex items-center gap-3 rounded-xl border border-orange-100 bg-white px-4 py-3 shadow-sm"
             >
-              <div className="min-w-0">
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-orange-50 text-orange-600">
+                <IconUsers className="h-4 w-4" />
+              </span>
+              <div className="min-w-0 flex-1">
                 <p className="truncate font-medium text-stone-900">
                   {customer.firstName} {customer.lastName}
                 </p>
@@ -76,15 +80,17 @@ export function CustomersManager({ initialCustomers }: { initialCustomers: Custo
                 <button
                   type="button"
                   onClick={() => setModalCustomer(customer)}
-                  className="font-medium text-orange-600 hover:underline"
+                  className="inline-flex items-center gap-1 font-medium text-orange-600 hover:underline"
                 >
+                  <IconPencil className="h-3.5 w-3.5" />
                   Editar
                 </button>
                 <button
                   type="button"
                   onClick={() => handleDelete(customer)}
-                  className="font-medium text-red-500 hover:underline"
+                  className="inline-flex items-center gap-1 font-medium text-red-500 hover:underline"
                 >
+                  <IconTrash className="h-3.5 w-3.5" />
                   Eliminar
                 </button>
               </div>
