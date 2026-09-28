@@ -2,10 +2,11 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { IconBox, IconCart, IconUsers, IconWallet } from "./icons";
+import { IconBox, IconCart, IconHome, IconUsers, IconWallet } from "./icons";
 
 const TABS = [
-  { href: "/", label: "Clientes", Icon: IconUsers },
+  { href: "/", label: "Dashboard", Icon: IconHome },
+  { href: "/clientes", label: "Clientes", Icon: IconUsers },
   { href: "/productos", label: "Productos", Icon: IconBox },
   { href: "/ventas", label: "Ventas", Icon: IconCart },
   { href: "/cobros", label: "Cobros", Icon: IconWallet },

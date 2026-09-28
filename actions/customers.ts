@@ -80,6 +80,7 @@ export async function createCustomer(
   });
 
   revalidatePath("/");
+  revalidatePath("/clientes");
   revalidatePath("/ventas/nueva");
 
   return { success: true, data: customer };
@@ -110,6 +111,7 @@ export async function updateCustomer(
   if (!customer) return { success: false, error: "El cliente no existe." };
 
   revalidatePath("/");
+  revalidatePath("/clientes");
   revalidatePath("/ventas");
 
   return { success: true, data: customer };
@@ -132,6 +134,7 @@ export async function deleteCustomer(id: string): Promise<ActionResult<null>> {
   await db.orm.public.Customer.where({ id }).delete();
 
   revalidatePath("/");
+  revalidatePath("/clientes");
 
   return { success: true, data: null };
 }

@@ -79,6 +79,7 @@ export async function registerPayment(
       return data;
     });
 
+    revalidatePath("/");
     revalidatePath("/ventas");
     revalidatePath(`/ventas/${input.saleId}`);
     revalidatePath("/cobros");

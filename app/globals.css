@@ -12,17 +12,25 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #1c1310;
-    --foreground: #fef3e2;
-  }
-}
-
+/*
+ * El resto de la interfaz está pensada como un tema claro fijo (cards
+ * blancas, textos stone-900 explícitos). No hay una versión oscura
+ * diseñada, así que no seguimos `prefers-color-scheme: dark` acá: si lo
+ * hiciéramos, sólo el texto heredado (como el de los <input>, que no
+ * tienen su propio color) pasaría a un tono claro sobre el fondo blanco
+ * del campo, quedando ilegible.
+ */
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+}
+
+input,
+textarea,
+select {
+  color: #1c1917;
+  background-color: #ffffff;
 }
 
 @media print {

@@ -50,6 +50,15 @@ export function IconWallet({ className }: IconProps) {
   );
 }
 
+export function IconHome({ className }: IconProps) {
+  return (
+    <svg className={className} {...common}>
+      <path d="M3 10.5 12 3l9 7.5" />
+      <path d="M5 9v10.5a1 1 0 0 0 1 1h4.5v-6h3v6H19a1 1 0 0 0 1-1V9" />
+    </svg>
+  );
+}
+
 export function IconPlus({ className }: IconProps) {
   return (
     <svg className={className} {...common}>

@@ -42,6 +42,7 @@ export async function createProduct(
       stock: input.stock,
     });
 
+  revalidatePath("/");
   revalidatePath("/productos");
   revalidatePath("/ventas/nueva");
 
@@ -67,6 +68,7 @@ export async function updateProduct(
 
   if (!product) return { success: false, error: "El producto no existe." };
 
+  revalidatePath("/");
   revalidatePath("/productos");
   revalidatePath("/ventas/nueva");
 
@@ -89,6 +91,7 @@ export async function deleteProduct(id: string): Promise<ActionResult<null>> {
 
   await db.orm.public.Product.where({ id }).delete();
 
+  revalidatePath("/");
   revalidatePath("/productos");
   revalidatePath("/ventas/nueva");
 

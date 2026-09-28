@@ -203,7 +203,7 @@ export function NewSaleForm({
       {noCustomers ? (
         <p className="text-sm text-amber-600">
           No hay clientes cargados.{" "}
-          <Link href="/" className="underline">
+          <Link href="/clientes" className="underline">
             Cargá uno primero
           </Link>
           .

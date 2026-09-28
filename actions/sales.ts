@@ -234,6 +234,7 @@ export async function createSale(
       return sale.id;
     });
 
+    revalidatePath("/");
     revalidatePath("/ventas");
     revalidatePath("/productos");
 
@@ -313,6 +314,7 @@ export async function updateSale(
       });
     });
 
+    revalidatePath("/");
     revalidatePath("/ventas");
     revalidatePath(`/ventas/${id}`);
     revalidatePath("/productos");
@@ -345,6 +347,7 @@ export async function deleteSale(id: string): Promise<ActionResult<null>> {
       await tx.orm.public.Sale.where({ id }).delete();
     });
 
+    revalidatePath("/");
     revalidatePath("/ventas");
     revalidatePath("/productos");
     revalidatePath("/cobros");
