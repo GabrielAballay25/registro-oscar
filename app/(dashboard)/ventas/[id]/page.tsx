@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getSaleDetail } from "@/actions/sales";
+import { DeleteSaleButton } from "@/components/DeleteSaleButton";
 import { MarkPaymentModal } from "@/components/MarkPaymentModal";
 import { StatusBadge } from "@/components/StatusBadge";
 import { FREQUENCY_LABELS } from "@/lib/frequency";
@@ -17,9 +18,17 @@ export default async function SaleDetailPage({
 
   return (
     <div className="mx-auto w-full max-w-2xl space-y-6 px-4 py-6">
-      <Link href="/ventas" className="text-sm text-stone-500 hover:underline">
-        ← Volver
-      </Link>
+      <div className="flex items-center justify-between">
+        <Link href="/ventas" className="text-sm text-stone-500 hover:underline">
+          ← Volver
+        </Link>
+        <Link
+          href={`/ventas/${sale.id}/editar`}
+          className="text-sm font-medium text-orange-600 hover:underline"
+        >
+          Editar
+        </Link>
+      </div>
 
       <header className="flex items-start justify-between gap-4">
         <div>
@@ -88,6 +97,8 @@ export default async function SaleDetailPage({
           </ul>
         )}
       </section>
+
+      <DeleteSaleButton saleId={sale.id} label={sale.customerName} />
     </div>
   );
 }
