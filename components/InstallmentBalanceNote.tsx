@@ -2,9 +2,11 @@ import { centsToDecimalString, decimalToCents, formatCurrency } from "@/lib/mone
 
 /**
  * Compara lo cobrado hasta ahora contra lo que deberían sumar las cuotas ya
- * marcadas (cuotas × monto por cuota). Como el cliente puede abonar montos
- * variables, esto puede quedar en saldo a favor (pagó de más) o en deuda
- * (todavía falta para completar esa cuota).
+ * VENCIDAS según el calendario (firstDueDate + frecuencia), no contra el
+ * total de la venta ni contra la cantidad de cobros marcados. Como el
+ * cliente puede abonar montos variables, esto puede quedar en saldo a favor
+ * (pagó de más para lo que va del calendario) o en deuda (todavía falta
+ * para estar al día con la cuota correspondiente).
  */
 export function InstallmentBalanceNote({
   balance,

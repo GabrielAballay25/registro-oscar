@@ -10,6 +10,7 @@ import {
   toMoney,
 } from "@/lib/money";
 import { dateInputToPlainDateTime, getWeekRange, plainDateTimeToDate } from "@/lib/temporal";
+import { elapsedPeriods } from "@/lib/installments";
 import type {
   ActionResult,
   PaymentDetail,
@@ -61,8 +62,16 @@ function toSaleCard(
     closedThisWeek = closedDate >= startDate && closedDate <= endDate;
   }
 
-  const expectedSoFar = multiplyDecimalByInt(sale.installmentAmount, paidInstallments);
-  const installmentBalance = subtractDecimalStrings(totalCollected, expectedSoFar);
+  // La deuda/saldo se mide contra las cuotas ya VENCIDAS según el
+  // calendario (firstDueDate + frecuencia), no contra la cantidad de
+  // cobros marcados ni contra el total de la venta.
+  const dueByNow = elapsedPeriods(
+    plainDateTimeToDate(sale.firstDueDate),
+    sale.paymentFrequency as PaymentFrequency,
+    sale.installmentCount,
+  );
+  const expectedByNow = multiplyDecimalByInt(sale.installmentAmount, dueByNow);
+  const installmentBalance = subtractDecimalStrings(totalCollected, expectedByNow);
 
   return {
     id: sale.id,

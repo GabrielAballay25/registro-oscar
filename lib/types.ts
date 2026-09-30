@@ -43,9 +43,11 @@ export type SaleCard = {
   closedAt: string | null;
   closedThisWeek: boolean;
   /**
-   * totalCollected - (paidInstallments × installmentAmount). Positivo =
-   * saldo a favor del cliente (pagó de más en las cuotas ya marcadas);
-   * negativo = todavía debe para completar esas cuotas.
+   * totalCollected - (cuotas VENCIDAS según el calendario × installmentAmount).
+   * Las cuotas vencidas se calculan por firstDueDate + paymentFrequency,
+   * no por cuántos cobros se marcaron. Positivo = saldo a favor (pagó de
+   * más para lo que va del calendario); negativo = debe esa diferencia
+   * para estar al día con la cuota correspondiente.
    */
   installmentBalance: string;
 };
