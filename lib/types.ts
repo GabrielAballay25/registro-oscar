@@ -42,6 +42,12 @@ export type SaleCard = {
   status: string;
   closedAt: string | null;
   closedThisWeek: boolean;
+  /**
+   * totalCollected - (paidInstallments × installmentAmount). Positivo =
+   * saldo a favor del cliente (pagó de más en las cuotas ya marcadas);
+   * negativo = todavía debe para completar esas cuotas.
+   */
+  installmentBalance: string;
 };
 
 export type PaymentDetail = {

@@ -3,6 +3,7 @@ import { FREQUENCY_LABELS } from "@/lib/frequency";
 import { formatCurrency } from "@/lib/money";
 import type { SaleCard as SaleCardData } from "@/lib/types";
 import { IconBox } from "./icons";
+import { InstallmentBalanceNote } from "./InstallmentBalanceNote";
 import { StatusBadge } from "./StatusBadge";
 
 function Row({ label, value, strong }: { label: string; value: string; strong?: boolean }) {
@@ -44,10 +45,15 @@ export function SaleCard({ sale }: { sale: SaleCardData }) {
         <Row label="Total cobrado" value={formatCurrency(sale.totalCollected)} strong />
       </div>
 
-      {sale.closedThisWeek ? (
-        <span className="mt-2 inline-block rounded-full bg-orange-50 px-2.5 py-1 text-xs font-medium text-orange-700">
-          Cerrada esta semana
-        </span>
+      {sale.closedThisWeek || sale.installmentBalance !== "0.00" ? (
+        <div className="mt-2 flex flex-wrap gap-1.5">
+          {sale.closedThisWeek ? (
+            <span className="inline-block rounded-full bg-orange-50 px-2.5 py-1 text-xs font-medium text-orange-700">
+              Cerrada esta semana
+            </span>
+          ) : null}
+          <InstallmentBalanceNote balance={sale.installmentBalance} />
+        </div>
       ) : null}
     </Link>
   );

@@ -5,8 +5,8 @@ import { getWeeklyClosureSummary } from "@/actions/payments";
 import { PageHeader } from "@/components/PageHeader";
 import { SaleCard } from "@/components/SaleCard";
 import { StatCard } from "@/components/StatCard";
-import { IconBox, IconCart, IconHome, IconUsers, IconWallet } from "@/components/icons";
-import { formatCurrency } from "@/lib/money";
+import { IconAlert, IconBox, IconCart, IconHome, IconUsers, IconWallet } from "@/components/icons";
+import { centsToDecimalString, decimalToCents, formatCurrency, multiplyDecimalByInt } from "@/lib/money";
 
 export default async function DashboardPage() {
   const [customers, products, sales, weekSummary] = await Promise.all([
@@ -18,9 +18,29 @@ export default async function DashboardPage() {
 
   const activeSales = sales.filter((s) => s.status !== "COMPLETADO");
 
+  // Deuda total por cobrar: para cada venta, lo pactado en total (monto por
+  // cuota × cantidad de cuotas) menos lo efectivamente cobrado. Si alguna
+  // venta quedó con saldo a favor, no resta de la deuda de las demás.
+  const totalDebtCents = sales.reduce((acc, sale) => {
+    const expectedTotal = multiplyDecimalByInt(sale.installmentAmount, sale.installmentCount);
+    const remaining = decimalToCents(expectedTotal) - decimalToCents(sale.totalCollected);
+    return acc + Math.max(0, remaining);
+  }, 0);
+  const totalDebt = centsToDecimalString(totalDebtCents);
+
   return (
     <div className="mx-auto w-full max-w-2xl space-y-6 px-4 py-6">
-      <PageHeader title="Dashboard" subtitle="Resumen general del negocio." Icon={IconHome} />
+      <PageHeader title="Inicio" subtitle="Resumen general del negocio." Icon={IconHome} />
+
+      <div className="flex items-center gap-3 rounded-xl border border-orange-100 bg-white p-4 shadow-sm">
+        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-red-50 text-red-600">
+          <IconAlert className="h-5 w-5" />
+        </span>
+        <div>
+          <p className="text-xs text-stone-500">Deuda total por cobrar</p>
+          <p className="mt-0.5 text-2xl font-bold text-stone-900">{formatCurrency(totalDebt)}</p>
+        </div>
+      </div>
 
       <div className="grid grid-cols-2 gap-3">
         <StatCard

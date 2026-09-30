@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { getSaleDetail } from "@/actions/sales";
 import { EditSaleForm } from "@/components/EditSaleForm";
 
@@ -11,6 +11,9 @@ export default async function EditSalePage({
   const { id } = await params;
   const sale = await getSaleDetail(id);
   if (!sale) notFound();
+  // Sólo se puede editar mientras la venta no tenga cobros registrados
+  // (ver actions/sales.ts#updateSale, que aplica la misma regla).
+  if (sale.paidInstallments > 0) redirect(`/ventas/${id}`);
 
   return (
     <div className="mx-auto w-full max-w-lg px-4 py-6">

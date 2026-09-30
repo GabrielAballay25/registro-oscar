@@ -67,6 +67,16 @@ export function IconPlus({ className }: IconProps) {
   );
 }
 
+export function IconAlert({ className }: IconProps) {
+  return (
+    <svg className={className} {...common}>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 8v5" />
+      <path d="M12 16h.01" />
+    </svg>
+  );
+}
+
 export function IconPencil({ className }: IconProps) {
   return (
     <svg className={className} {...common}>

@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { IconBox, IconCart, IconHome, IconUsers, IconWallet } from "./icons";
 
 const TABS = [
-  { href: "/", label: "Dashboard", Icon: IconHome },
+  { href: "/", label: "Inicio", Icon: IconHome },
   { href: "/clientes", label: "Clientes", Icon: IconUsers },
   { href: "/productos", label: "Productos", Icon: IconBox },
   { href: "/ventas", label: "Ventas", Icon: IconCart },

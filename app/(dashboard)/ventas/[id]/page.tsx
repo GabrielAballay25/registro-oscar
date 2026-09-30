@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getSaleDetail } from "@/actions/sales";
 import { DeleteSaleButton } from "@/components/DeleteSaleButton";
+import { InstallmentBalanceNote } from "@/components/InstallmentBalanceNote";
 import { MarkPaymentModal } from "@/components/MarkPaymentModal";
 import { StatusBadge } from "@/components/StatusBadge";
 import { IconPencil, IconWallet } from "@/components/icons";
@@ -23,13 +24,15 @@ export default async function SaleDetailPage({
         <Link href="/ventas" className="text-sm text-stone-500 hover:underline">
           ← Volver
         </Link>
-        <Link
-          href={`/ventas/${sale.id}/editar`}
-          className="inline-flex items-center gap-1 text-sm font-medium text-orange-600 hover:underline"
-        >
-          <IconPencil className="h-3.5 w-3.5" />
-          Editar
-        </Link>
+        {sale.paidInstallments === 0 ? (
+          <Link
+            href={`/ventas/${sale.id}/editar`}
+            className="inline-flex items-center gap-1 text-sm font-medium text-orange-600 hover:underline"
+          >
+            <IconPencil className="h-3.5 w-3.5" />
+            Editar
+          </Link>
+        ) : null}
       </div>
 
       <header className="flex items-start justify-between gap-4">
@@ -71,6 +74,9 @@ export default async function SaleDetailPage({
             <dt className="font-semibold text-stone-900">Total cobrado</dt>
             <dd className="font-bold">{formatCurrency(sale.totalCollected)}</dd>
           </div>
+          <div>
+            <InstallmentBalanceNote balance={sale.installmentBalance} />
+          </div>
           {sale.notes ? (
             <div className="border-t border-orange-100 pt-1.5">
               <dt className="text-stone-500">Observaciones</dt>
@@ -80,7 +86,11 @@ export default async function SaleDetailPage({
         </dl>
       </section>
 
-      <MarkPaymentModal saleId={sale.id} disabled={sale.status === "COMPLETADO"} />
+      <MarkPaymentModal
+        saleId={sale.id}
+        disabled={sale.status === "COMPLETADO"}
+        installmentBalance={sale.installmentBalance}
+      />
 
       <section>
         <h2 className="mb-2 font-medium text-stone-900">Historial de cobros</h2>

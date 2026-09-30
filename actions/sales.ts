@@ -3,7 +3,12 @@
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/prisma";
 import { requireAuth } from "@/lib/auth";
-import { sumDecimalStrings, toMoney } from "@/lib/money";
+import {
+  multiplyDecimalByInt,
+  subtractDecimalStrings,
+  sumDecimalStrings,
+  toMoney,
+} from "@/lib/money";
 import { dateInputToPlainDateTime, getWeekRange, plainDateTimeToDate } from "@/lib/temporal";
 import type {
   ActionResult,
@@ -56,6 +61,9 @@ function toSaleCard(
     closedThisWeek = closedDate >= startDate && closedDate <= endDate;
   }
 
+  const expectedSoFar = multiplyDecimalByInt(sale.installmentAmount, paidInstallments);
+  const installmentBalance = subtractDecimalStrings(totalCollected, expectedSoFar);
+
   return {
     id: sale.id,
     customerId: sale.customerId,
@@ -72,6 +80,7 @@ function toSaleCard(
     status,
     closedAt,
     closedThisWeek,
+    installmentBalance,
   };
 }
 
@@ -274,9 +283,9 @@ export async function updateSale(
         .first();
       if (!sale) throw new Error("La venta no existe.");
 
-      if (input.installmentCount < sale.payments.length) {
+      if (sale.payments.length > 0) {
         throw new Error(
-          `No se puede bajar la cantidad de cuotas por debajo de las ya cobradas (${sale.payments.length}).`,
+          "No se puede editar una venta que ya tiene cobros registrados.",
         );
       }
 
@@ -294,14 +303,7 @@ export async function updateSale(
         await tx.orm.public.Product.where({ id: product.id }).update({ stock: newStock });
       }
 
-      const paidInstallments = sale.payments.length;
-      const status =
-        paidInstallments === 0
-          ? "PENDIENTE"
-          : paidInstallments >= input.installmentCount
-            ? "COMPLETADO"
-            : "PARCIAL";
-
+      // Ya validamos arriba que no tiene cobros, así que sigue "PENDIENTE".
       await tx.orm.public.Sale.where({ id }).update({
         quantity: input.quantity,
         saleDate: dateInputToPlainDateTime(input.saleDate),
@@ -310,7 +312,6 @@ export async function updateSale(
         firstDueDate: dateInputToPlainDateTime(input.firstDueDate),
         installmentCount: input.installmentCount,
         notes: input.notes?.trim() || null,
-        status,
       });
     });
 

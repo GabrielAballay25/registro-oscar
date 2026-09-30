@@ -107,16 +107,11 @@ export function EditSaleForm({ sale }: { sale: SaleDetail }) {
           <input
             name="installmentCount"
             type="number"
-            min={sale.paidInstallments || 1}
+            min={1}
             required
             defaultValue={sale.installmentCount}
             className="rounded-md border border-stone-300 px-3 py-2"
           />
-          {sale.paidInstallments > 0 ? (
-            <span className="text-xs text-stone-400">
-              No puede ser menor a las cuotas ya cobradas ({sale.paidInstallments}).
-            </span>
-          ) : null}
         </label>
       </div>
 

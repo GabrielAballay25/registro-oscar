@@ -4,6 +4,7 @@ import { useActionState, useEffect, useRef, useState } from "react";
 import { registerPayment } from "@/actions/payments";
 import type { ActionResult, PaymentReceiptData } from "@/lib/types";
 import { IconWallet } from "./icons";
+import { InstallmentBalanceNote } from "./InstallmentBalanceNote";
 import { PaymentReceiptModal } from "./PaymentReceiptModal";
 
 type State = ActionResult<PaymentReceiptData> | null;
@@ -14,7 +15,15 @@ function todayIsoDate(): string {
   return now.toISOString().slice(0, 10);
 }
 
-export function MarkPaymentModal({ saleId, disabled }: { saleId: string; disabled: boolean }) {
+export function MarkPaymentModal({
+  saleId,
+  disabled,
+  installmentBalance,
+}: {
+  saleId: string;
+  disabled: boolean;
+  installmentBalance: string;
+}) {
   const [open, setOpen] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
   const [dismissedPaymentId, setDismissedPaymentId] = useState<string | null>(null);
@@ -73,6 +82,8 @@ export function MarkPaymentModal({ saleId, disabled }: { saleId: string; disable
             className="w-full max-w-sm space-y-3 rounded-2xl bg-white p-5 shadow-lg"
           >
             <h2 className="font-semibold text-stone-900">Marcar cobro</h2>
+
+            <InstallmentBalanceNote balance={installmentBalance} />
 
             {state && !state.success ? (
               <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{state.error}</p>
