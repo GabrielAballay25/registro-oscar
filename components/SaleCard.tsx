@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { FREQUENCY_LABELS } from "@/lib/frequency";
 import { formatCurrency } from "@/lib/money";
+import { formatDateAR } from "@/lib/temporal";
 import type { SaleCard as SaleCardData } from "@/lib/types";
 import { IconBox } from "./icons";
 import { InstallmentBalanceNote } from "./InstallmentBalanceNote";
@@ -40,7 +41,7 @@ export function SaleCard({ sale }: { sale: SaleCardData }) {
         <Row label="Cliente" value={sale.customerName} />
         <Row label="Cuotas" value={`${sale.paidInstallments} de ${sale.installmentCount}`} />
         {sale.closedAt ? (
-          <Row label="Cerrada el" value={new Date(sale.closedAt).toLocaleDateString("es-AR")} />
+          <Row label="Cerrada el" value={formatDateAR(new Date(sale.closedAt))} />
         ) : null}
         <Row label="Total cobrado" value={formatCurrency(sale.totalCollected)} strong />
       </div>

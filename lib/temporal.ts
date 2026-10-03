@@ -37,15 +37,26 @@ export function dateInputToPlainDateTime(value: string): Temporal.PlainDateTime 
   return new Temporal.PlainDateTime(year, month, day, 0, 0, 0);
 }
 
+/**
+ * Formatea como "d/m/yyyy" (estilo es-AR) a mano, sin `toLocaleDateString`:
+ * ese método depende de los datos ICU del motor JS que lo ejecuta, que
+ * pueden diferir levemente entre el servidor (SSR, Node) y el navegador
+ * (hidratación), causando un mismatch de hidratación en React. Esta versión
+ * da siempre el mismo resultado sin importar el entorno.
+ */
+export function formatDateAR(date: Date): string {
+  return `${date.getDate()}/${date.getMonth() + 1}/${date.getFullYear()}`;
+}
+
 export function formatDate(pdt: Temporal.PlainDateTime): string {
-  return plainDateTimeToDate(pdt).toLocaleDateString("es-AR");
+  return formatDateAR(plainDateTimeToDate(pdt));
 }
 
 export function formatDateTime(pdt: Temporal.PlainDateTime): string {
-  return plainDateTimeToDate(pdt).toLocaleString("es-AR", {
-    dateStyle: "short",
-    timeStyle: "short",
-  });
+  const date = plainDateTimeToDate(pdt);
+  const hours = date.getHours().toString().padStart(2, "0");
+  const minutes = date.getMinutes().toString().padStart(2, "0");
+  return `${formatDateAR(date)}, ${hours}:${minutes}`;
 }
 
 /** Lunes 00:00:00.000 a Domingo 23:59:59.999 de la semana de `reference`. */

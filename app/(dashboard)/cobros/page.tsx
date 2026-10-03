@@ -3,6 +3,7 @@ import { CloseWeekButton } from "@/components/CloseWeekButton";
 import { PageHeader } from "@/components/PageHeader";
 import { IconWallet } from "@/components/icons";
 import { formatCurrency } from "@/lib/money";
+import { formatDateAR } from "@/lib/temporal";
 
 export default async function CobrosPage() {
   const [summary, history] = await Promise.all([
@@ -19,7 +20,7 @@ export default async function CobrosPage() {
 
       <section className="rounded-xl border border-orange-100 bg-white p-4 shadow-sm">
         <p className="text-sm text-stone-500">
-          Semana del {start.toLocaleDateString("es-AR")} al {end.toLocaleDateString("es-AR")}
+          Semana del {formatDateAR(start)} al {formatDateAR(end)}
         </p>
         <p className="mt-1 text-3xl font-bold tabular-nums text-stone-900">
           {formatCurrency(summary.total)}
@@ -35,7 +36,7 @@ export default async function CobrosPage() {
               <li key={payment.id} className="flex items-center gap-2 py-1.5">
                 <IconWallet className="h-4 w-4 shrink-0 text-orange-400" />
                 <span className="flex-1">
-                  {new Date(payment.paymentDate).toLocaleDateString("es-AR")} ·{" "}
+                  {formatDateAR(new Date(payment.paymentDate))} ·{" "}
                   {payment.customerName} ({payment.productName})
                 </span>
                 <span className="tabular-nums">{formatCurrency(payment.amountPaid)}</span>
@@ -59,8 +60,8 @@ export default async function CobrosPage() {
               <li key={closure.id} className="flex items-center gap-2 px-4 py-2">
                 <IconWallet className="h-4 w-4 shrink-0 text-orange-400" />
                 <span className="flex-1">
-                  {new Date(closure.startDate).toLocaleDateString("es-AR")} —{" "}
-                  {new Date(closure.endDate).toLocaleDateString("es-AR")}
+                  {formatDateAR(new Date(closure.startDate))} —{" "}
+                  {formatDateAR(new Date(closure.endDate))}
                 </span>
                 <span className="font-medium tabular-nums">
                   {formatCurrency(closure.totalAmount)}

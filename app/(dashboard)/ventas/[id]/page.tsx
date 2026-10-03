@@ -8,6 +8,7 @@ import { StatusBadge } from "@/components/StatusBadge";
 import { IconPencil, IconWallet } from "@/components/icons";
 import { FREQUENCY_LABELS } from "@/lib/frequency";
 import { formatCurrency } from "@/lib/money";
+import { formatDateAR } from "@/lib/temporal";
 
 export default async function SaleDetailPage({
   params,
@@ -40,7 +41,7 @@ export default async function SaleDetailPage({
           <h1 className="text-xl font-semibold text-stone-900">{sale.productName}</h1>
           <p className="text-sm text-stone-500">{sale.customerName}</p>
           <p className="text-xs text-stone-400">
-            Venta del {new Date(sale.saleDate).toLocaleDateString("es-AR")} ·{" "}
+            Venta del {formatDateAR(new Date(sale.saleDate))} ·{" "}
             {FREQUENCY_LABELS[sale.paymentFrequency]}
           </p>
         </div>
@@ -61,7 +62,7 @@ export default async function SaleDetailPage({
           <div className="flex justify-between">
             <dt className="text-stone-500">Primer cobro</dt>
             <dd className="font-medium">
-              {new Date(sale.firstDueDate).toLocaleDateString("es-AR")}
+              {formatDateAR(new Date(sale.firstDueDate))}
             </dd>
           </div>
           <div className="flex justify-between">
@@ -102,7 +103,7 @@ export default async function SaleDetailPage({
               <li key={payment.id} className="flex items-center gap-2 px-4 py-2">
                 <IconWallet className="h-4 w-4 shrink-0 text-orange-400" />
                 <span className="flex-1">
-                  {new Date(payment.paymentDate).toLocaleDateString("es-AR")}
+                  {formatDateAR(new Date(payment.paymentDate))}
                 </span>
                 <span className="font-medium tabular-nums">
                   {formatCurrency(payment.amountPaid)}

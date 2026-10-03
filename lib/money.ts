@@ -48,11 +48,28 @@ export function subtractDecimalStrings(a: string, b: string): string {
   return centsToDecimalString(decimalToCents(a) - decimalToCents(b));
 }
 
+/**
+ * Agrupa de a 3 dígitos con "." (ej. "8135000" -> "8.135.000"). Reemplaza a
+ * `Number.prototype.toLocaleString("es-AR", ...)`: ese método depende de los
+ * datos ICU del motor JS que lo ejecuta, que pueden diferir levemente entre
+ * el runtime de Node en el servidor (SSR) y el motor del navegador
+ * (hidratación), produciendo un mismatch de hidratación en React. Esta
+ * implementación manual da el mismo resultado siempre, en cualquier entorno.
+ */
+function groupThousands(digits: string): string {
+  let result = "";
+  for (let i = 0; i < digits.length; i++) {
+    const posFromEnd = digits.length - i;
+    if (i > 0 && posFromEnd % 3 === 0) result += ".";
+    result += digits[i];
+  }
+  return result;
+}
+
 export function formatCurrency(value: string): string {
   const cents = decimalToCents(value);
-  const formatted = (Math.abs(cents) / 100).toLocaleString("es-AR", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  });
-  return `${cents < 0 ? "-" : ""}$${formatted}`;
+  const abs = Math.abs(cents);
+  const whole = Math.floor(abs / 100);
+  const frac = (abs % 100).toString().padStart(2, "0");
+  return `${cents < 0 ? "-" : ""}$${groupThousands(String(whole))},${frac}`;
 }

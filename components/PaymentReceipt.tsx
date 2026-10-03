@@ -1,4 +1,5 @@
 import { formatCurrency } from "@/lib/money";
+import { formatDateAR } from "@/lib/temporal";
 import type { PaymentReceiptData } from "@/lib/types";
 import { StatusBadge } from "./StatusBadge";
 
@@ -34,7 +35,7 @@ export function PaymentReceipt({ receipt }: { receipt: PaymentReceiptData }) {
         <div className="flex justify-between">
           <dt className="text-stone-500">Fecha</dt>
           <dd className="font-medium">
-            {new Date(receipt.paymentDate).toLocaleDateString("es-AR")}
+            {formatDateAR(new Date(receipt.paymentDate))}
           </dd>
         </div>
         <div className="flex justify-between">
