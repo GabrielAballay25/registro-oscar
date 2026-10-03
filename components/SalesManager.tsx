@@ -5,18 +5,35 @@ import type { SaleCard as SaleCardData } from "@/lib/types";
 import { Fab } from "./Fab";
 import { SaleCard } from "./SaleCard";
 
+/**
+ * Sin acentos/mayúsculas, para ordenar y filtrar. No usamos `localeCompare`
+ * acá: su resultado depende de los datos de colación ICU del motor JS que
+ * lo ejecuta, que pueden diferir entre el servidor (SSR, Node) y el
+ * navegador (hidratación), produciendo un orden distinto y un mismatch de
+ * hidratación en React. `normalize` + `toLowerCase` + comparación simple
+ * son deterministas en cualquier entorno.
+ */
+function normalizeForSort(value: string): string {
+  return value
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .toLowerCase();
+}
+
 export function SalesManager({ initialSales }: { initialSales: SaleCardData[] }) {
   const [search, setSearch] = useState("");
 
   const sales = useMemo(() => {
-    const term = search.trim().toLowerCase();
+    const term = normalizeForSort(search.trim());
     const filtered = term
-      ? initialSales.filter((sale) => sale.customerName.toLowerCase().includes(term))
+      ? initialSales.filter((sale) => normalizeForSort(sale.customerName).includes(term))
       : initialSales;
 
-    return [...filtered].sort((a, b) =>
-      a.customerName.localeCompare(b.customerName, "es", { sensitivity: "base" }),
-    );
+    return [...filtered].sort((a, b) => {
+      const an = normalizeForSort(a.customerName);
+      const bn = normalizeForSort(b.customerName);
+      return an < bn ? -1 : an > bn ? 1 : 0;
+    });
   }, [initialSales, search]);
 
   return (
