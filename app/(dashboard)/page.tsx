@@ -6,7 +6,12 @@ import { PageHeader } from "@/components/PageHeader";
 import { SaleCard } from "@/components/SaleCard";
 import { StatCard } from "@/components/StatCard";
 import { IconAlert, IconBox, IconCart, IconHome, IconUsers, IconWallet } from "@/components/icons";
-import { centsToDecimalString, decimalToCents, formatCurrency } from "@/lib/money";
+import {
+  centsToDecimalString,
+  decimalToCents,
+  formatCurrency,
+  multiplyDecimalByInt,
+} from "@/lib/money";
 
 export default async function DashboardPage() {
   const [customers, products, sales, weekSummary] = await Promise.all([
@@ -18,15 +23,18 @@ export default async function DashboardPage() {
 
   const activeSales = sales.filter((s) => s.status !== "COMPLETADO");
 
-  // Deuda total por cobrar: suma de lo que cada venta debe HOY según su
-  // calendario de vencimientos (installmentBalance, ya calculado en
-  // getSaleCards contra las cuotas vencidas, no contra el total de la
-  // venta). Si una venta quedó con saldo a favor, no resta de la deuda de
+  // Deuda total por cobrar: es un dato distinto del aviso "Saldo a favor /
+  // Debe" de cada venta (que mira sólo la cuota vigente por calendario).
+  // Acá el usuario quiere saber cuánta plata falta cobrar EN TOTAL por
+  // cada venta hasta cancelarla (lo pactado completo: monto por cuota ×
+  // cantidad de cuotas, menos lo ya cobrado), sumado entre todas las
+  // ventas. Si una venta quedó con saldo a favor, no resta de la deuda de
   // las demás.
-  const totalDebtCents = sales.reduce(
-    (acc, sale) => acc + Math.max(0, -decimalToCents(sale.installmentBalance)),
-    0,
-  );
+  const totalDebtCents = sales.reduce((acc, sale) => {
+    const expectedTotal = multiplyDecimalByInt(sale.installmentAmount, sale.installmentCount);
+    const remaining = decimalToCents(expectedTotal) - decimalToCents(sale.totalCollected);
+    return acc + Math.max(0, remaining);
+  }, 0);
   const totalDebt = centsToDecimalString(totalDebtCents);
 
   return (
